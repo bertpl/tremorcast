@@ -34,5 +34,6 @@ FILES_GRAPH = [
 # -------------------------------------------------------------------------
 #  DATASET
 # -------------------------------------------------------------------------
-FILE_DATASET = os.path.join(PATH_DATASET, "dataset.pkl")
-FILE_DATASET_GRAPH = os.path.join(PATH_DATASET, "dataset.png")
+FILE_DATASET_PKL = os.path.join(PATH_DATASET, "dataset.pkl")
+FILE_DATASET_PNG = os.path.join(PATH_DATASET, "dataset.png")
+FILE_DATASET_CSV = os.path.join(PATH_DATASET, "dataset.csv")

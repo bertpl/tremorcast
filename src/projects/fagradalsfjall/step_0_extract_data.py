@@ -4,7 +4,7 @@ from typing import Optional
 
 from src.applications.vedur_is import VedurHarmonicMagnitudes, VedurHarmonicMagnitudesGraph
 
-from ._project_settings import FILE_DATASET, FILE_DATASET_GRAPH, FILES_GRAPH, PATH_SOURCE_DEBUG
+from ._project_settings import FILE_DATASET_CSV, FILE_DATASET_PKL, FILE_DATASET_PNG, FILES_GRAPH, PATH_SOURCE_DEBUG
 
 
 # -------------------------------------------------------------------------
@@ -41,12 +41,15 @@ def extract_data():
     # --- save figure & data ------------------------------
     print(f"Saving to disk ...".ljust(60), end="")
 
-    # figure
+    # PNG file
     fig, ax = all_data.create_plot(title="Fagradalsfjall (faf)")
-    fig.savefig(FILE_DATASET_GRAPH, dpi=450)
+    fig.savefig(FILE_DATASET_PNG, dpi=450)
 
-    # data
-    save_data(all_data)
+    # PKL file
+    save_data_pickle(all_data)
+
+    # CSV file
+    save_data_csv(all_data)
 
     print("Done.")
 
@@ -54,15 +57,19 @@ def extract_data():
 # -------------------------------------------------------------------------
 #  LOAD / SAVE
 # -------------------------------------------------------------------------
-def save_data(data: VedurHarmonicMagnitudes):
+def save_data_pickle(data: VedurHarmonicMagnitudes):
 
-    with open(FILE_DATASET, "wb") as f:
+    with open(FILE_DATASET_PKL, "wb") as f:
         pickle.dump(data, f)
 
 
-def load_data() -> VedurHarmonicMagnitudes:
+def load_data_pickle() -> VedurHarmonicMagnitudes:
 
-    with open(FILE_DATASET, "rb") as f:
+    with open(FILE_DATASET_PKL, "rb") as f:
         data = pickle.load(f)
 
     return data
+
+
+def save_data_csv(data: VedurHarmonicMagnitudes):
+    data.to_dataframe().to_csv(FILE_DATASET_CSV)

@@ -9,6 +9,7 @@ import datetime
 from typing import Dict, Iterable, List, Tuple, Union
 
 import numpy as np
+import pandas as pd
 
 from src.tools.datetime import float_to_ts, ts_to_float
 
@@ -126,6 +127,12 @@ class TimeSeries:
         # --- new TimeSeries ------------------------------
         return TimeSeries(new_t0, new_ts, new_data)
 
+    # -------------------------------------------------------------------------
+    #  Export
+    # -------------------------------------------------------------------------
+    def to_dataframe(self) -> pd.Dataframe:
+        return pd.DataFrame(index=self.time, columns=["data"], data=self.data)
+
 
 # =================================================================================================
 #  MultiTimeSeries
@@ -176,7 +183,8 @@ class MultiTimeSeries:
         return [self._series[tag] for tag in self.tags()]  # same order as tags()
 
     def items(self) -> Iterable[Tuple[str, TimeSeries]]:
-        return self._series.items()
+        for tag in self.tags():
+            yield tag, self._series[tag]  # same order as tags()
 
     # -------------------------------------------------------------------------
     #  TimeSeries-like - Properties
@@ -242,3 +250,15 @@ class MultiTimeSeries:
         for tag, series in self.items():
             new[tag] = series.resample(new_ts)
         return new
+
+    # -------------------------------------------------------------------------
+    #  Export
+    # -------------------------------------------------------------------------
+    def to_dataframe(self) -> pd.Dataframe:
+
+        df = pd.DataFrame()
+
+        for tag, series in self.items():
+            df[tag] = series.to_dataframe()
+
+        return df
