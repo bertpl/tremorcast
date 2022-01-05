@@ -34,6 +34,11 @@ FILES_GRAPH = [
 # -------------------------------------------------------------------------
 #  DATASET
 # -------------------------------------------------------------------------
-FILE_DATASET_PKL = os.path.join(PATH_DATASET, "dataset.pkl")
-FILE_DATASET_PNG = os.path.join(PATH_DATASET, "dataset.png")
-FILE_DATASET_CSV = os.path.join(PATH_DATASET, "dataset.csv")
+
+# STEP 0 - extract data from plots
+FILE_DATASET_FULL = os.path.join(PATH_DATASET, "dataset_full")
+
+# STEP 1 - prepare train & test set
+FILE_DATASET_SELECTION = os.path.join(PATH_DATASET, "dataset_selection")
+FILE_DATASET_TRAIN = os.path.join(PATH_DATASET, "dataset_train")
+FILE_DATASET_TEST = os.path.join(PATH_DATASET, "dataset_test")
