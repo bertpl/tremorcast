@@ -161,7 +161,7 @@ class MultiTimeSeries:
     # -------------------------------------------------------------------------
     #  Dict-like - get / set single TimeSeries
     # -------------------------------------------------------------------------
-    def __setitem__(self, tag, series: TimeSeries):
+    def __setitem__(self, tag: str, series: TimeSeries):
         if len(self) > 0:
             if series.t0 != self.t0:
                 raise ValueError(f"t0 mismatch upon insertion of TimeSeries: {series.t0} vs {self.t0}.")
@@ -170,7 +170,7 @@ class MultiTimeSeries:
 
         self._series[tag] = series
 
-    def __getitem__(self, tag) -> TimeSeries:
+    def __getitem__(self, tag: str) -> TimeSeries:
         return self._series[tag]
 
     def __len__(self):
@@ -215,6 +215,15 @@ class MultiTimeSeries:
         for i, series in enumerate(self.series()):
             arr[i, :] = series.data.copy()
         return arr
+
+    def slice(self, i_from: int, i_to: int) -> MultiTimeSeries:
+        """Returns a subset [i_from:i_to] of samples."""
+        cpy = self.copy()  # this make sure we return an appropriate object type, also for child classes
+        for tag, series in self.items():
+            # use cpy._series[tag] instead of cpy[tag] to bypass sanity checks,
+            # since temporarily the time series will have incompatible time axes.
+            cpy._series[tag] = series[i_from:i_to]
+        return cpy
 
     # -------------------------------------------------------------------------
     #  TimeSeries-like - Merge

@@ -262,6 +262,23 @@ def test_multi_time_series_resample():
     np.testing.assert_array_equal(mts_resampled.to_array(), expected_resampled_array)
 
 
+def test_multi_time_series_slice():
+
+    # --- arrange -----------------------------------------
+    time_series_a = TimeSeries(some_t0, ts_30min, [0, 1, 2, 3, 4, 5])
+    time_series_b = TimeSeries(some_t0, ts_30min, [0, 10, 20, 30, 40, 50])
+    mts = MultiTimeSeries([("tag_1", time_series_a), ("tag_b", time_series_b)])
+
+    expected_sliced_array = np.array([[1, 2, 3], [10, 20, 30]])
+
+    # --- act ---------------------------------------------
+    mts_sliced = mts.slice(1, 4)
+
+    # --- assert ------------------------------------------
+    assert mts_sliced.tags() == mts.tags()
+    np.testing.assert_array_equal(mts_sliced.to_array(), expected_sliced_array)
+
+
 @pytest.mark.parametrize(
     # same parameters as equivalent test for TimeSeries class
     *test_time_series_get_closest_sample.pytestmark[0].args
