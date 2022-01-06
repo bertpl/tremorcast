@@ -1,10 +1,10 @@
 import datetime
-import os
 import pickle
-import matplotlib.patches as patches
-import matplotlib.pyplot as plt
 
-from src.applications.vedur_is import VedurHarmonicMagnitudes, VedurHarmonicMagnitudesGraph
+import matplotlib.patches as patches
+
+from src.applications.vedur_is import VedurHarmonicMagnitudes
+from src.tools.datetime import ts_to_float
 
 from ._project_settings import FILE_DATASET_FULL, FILE_DATASET_SELECTION, FILE_DATASET_TEST, FILE_DATASET_TRAIN
 
@@ -12,9 +12,6 @@ from ._project_settings import FILE_DATASET_FULL, FILE_DATASET_SELECTION, FILE_D
 # -------------------------------------------------------------------------
 #  PROCESSING
 # -------------------------------------------------------------------------
-from ...tools.datetime import ts_to_float
-
-
 def prepare_train_and_test_data():
 
     # --- load full dataset -------------------------------
@@ -30,12 +27,12 @@ def prepare_train_and_test_data():
     i_from = all_data.get_closest_index(ts_from)
     i_to = all_data.get_closest_index(ts_to)
 
-    data_selection = all_data.slice(i_from, i_to)   # type: VedurHarmonicMagnitudes
-    data_selection_extra = all_data.slice(i_from-96, i_to+96)   # type: VedurHarmonicMagnitudes
+    data_selection = all_data.slice(i_from, i_to)  # type: VedurHarmonicMagnitudes
+    data_selection_extra = all_data.slice(i_from - 96, i_to + 96)  # type: VedurHarmonicMagnitudes
 
     i_train_from = 0
-    i_train_to = 20*96
-    i_test_from = 20*96
+    i_train_to = 20 * 96
+    i_test_from = 20 * 96
     i_test_to = data_selection.n_samples
 
     data_train = data_selection.slice(i_train_from, i_train_to)
@@ -59,17 +56,21 @@ def prepare_train_and_test_data():
     fig, ax = data_selection_extra.create_plot(title="Fagradalsfjall (faf) - TRAINING & TEST SETS")
 
     x_train_from = ts_to_float(data_selection.time[i_train_from])
-    x_train_to = ts_to_float(data_selection.time[i_train_to-1])
+    x_train_to = ts_to_float(data_selection.time[i_train_to - 1])
     x_test_from = ts_to_float(data_selection.time[i_test_from])
-    x_test_to = ts_to_float(data_selection.time[i_test_to-1])
+    x_test_to = ts_to_float(data_selection.time[i_test_to - 1])
 
-    train_rect = patches.Rectangle((x_train_from, 250), x_train_to-x_train_from, 6500, alpha=0.1, edgecolor=None, facecolor='green')
+    train_rect = patches.Rectangle(
+        (x_train_from, 250), x_train_to - x_train_from, 6500, alpha=0.1, edgecolor=None, facecolor="green"
+    )
     ax.add_patch(train_rect)
-    ax.text(x_train_from + (6*60*60), 6250, "TRAINING DATA", fontsize=16, fontweight=600)
+    ax.text(x_train_from + (6 * 60 * 60), 6250, "TRAINING DATA", fontsize=16, fontweight=600)
 
-    test_rect = patches.Rectangle((x_test_from, 250), x_test_to-x_test_from, 6500, alpha=0.1, edgecolor=None, facecolor='blue')
+    test_rect = patches.Rectangle(
+        (x_test_from, 250), x_test_to - x_test_from, 6500, alpha=0.1, edgecolor=None, facecolor="blue"
+    )
     ax.add_patch(test_rect)
-    ax.text(x_test_from + (6*60*60), 6250, "TEST DATA", fontsize=16, fontweight=600)
+    ax.text(x_test_from + (6 * 60 * 60), 6250, "TEST DATA", fontsize=16, fontweight=600)
 
     fig.savefig(FILE_DATASET_SELECTION + ".png", dpi=450)
 
