@@ -14,7 +14,7 @@ class TimeSeriesForecastModel(ABC):
         Constructor of TimeSeriesForecastModel class.
         :param signal_name: (str) name of the signal we're forecasting.
         """
-        self.signal_name: str
+        self.signal_name = signal_name
 
     @abstractmethod
     def fit(self, training_data: pd.DataFrame):
