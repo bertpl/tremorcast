@@ -3,7 +3,7 @@ from typing import List
 import numpy as np
 import pytest
 
-from src.base.metrics.forecast_horizon import compute_maximum_reliable_forecast_horizon
+from src.base.forecasting.metrics.forecast_horizon import compute_maximum_reliable_forecast_horizon
 
 
 @pytest.mark.parametrize(
