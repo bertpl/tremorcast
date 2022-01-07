@@ -58,7 +58,9 @@ class HarmonicMagnitudes(MultiTimeSeries):
     # -------------------------------------------------------------------------
     #  Graphs
     # -------------------------------------------------------------------------
-    def create_plot(self, signal_types: List[Any] = None, title: str = None) -> Tuple[plt.Figure, plt.Axes]:
+    def create_plot(
+        self, signal_types: List[Any] = None, title: str = None, aspect_ratio: float = None
+    ) -> Tuple[plt.Figure, plt.Axes]:
 
         # --- determine signal tags to be plotted ---------
         if signal_types is not None:
@@ -77,7 +79,7 @@ class HarmonicMagnitudes(MultiTimeSeries):
         # --- actual work ---------------------------------
         fig, ax = self._prepare_fig_and_axes(tags)
         self._draw_signals(fig, ax, tags)
-        self._finalize_fig_and_axes(fig, ax, title)
+        self._finalize_fig_and_axes(fig, ax, title, aspect_ratio)
 
         # --- return --------------------------------------
         return fig, ax
@@ -113,12 +115,16 @@ class HarmonicMagnitudes(MultiTimeSeries):
 
         return all_handles
 
-    def _finalize_fig_and_axes(self, fig: plt.Figure, ax: plt.Axes, title: str):
+    def _finalize_fig_and_axes(self, fig: plt.Figure, ax: plt.Axes, title: str, aspect_ratio):
 
         # size
-        x_min, x_max = ax.get_xlim()
-        w = (x_max - x_min) / 150_000  # divide by ~2 days
         h = 6
+        if aspect_ratio is None:
+            x_min, x_max = ax.get_xlim()
+            w = (x_max - x_min) / 150_000  # divide by ~2 days
+        else:
+            w = h * aspect_ratio
+
         fig.set_size_inches(w=w, h=h)
 
         # title
