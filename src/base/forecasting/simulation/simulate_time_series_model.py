@@ -44,7 +44,11 @@ def simulate_time_series_model(
 
     # --- perform simulation ------------------------------
     forecasts = []  # type: List[Tuple[int, np.ndarray]]
-    for i in tqdm(range(len(test_data)), desc=f"Evaluating model '{model.model_type}' (retrain={retrain_model})".ljust(60), file=sys.stdout):
+    for i in tqdm(
+        range(len(test_data)),
+        desc=f"Evaluating model '{model.model_type}' (retrain={retrain_model})".ljust(60),
+        file=sys.stdout,
+    ):
 
         # construct history
         if i > 0:

@@ -44,7 +44,7 @@ def evaluate_forecast_models():
 
     for retrain_model in [False, True]:
 
-        mad_curves = dict()     # type: Dict[str, np.ndarray]
+        mad_curves = dict()  # type: Dict[str, np.ndarray]
 
         for model_type in model_types_to_evaluate:
 
@@ -84,7 +84,5 @@ def evaluate_forecast_models():
         title = f"MAD curves (retraining {'ON' if retrain_model else 'OFF'})"
         fig, ax = plot_mad_curves(mad_curves, FORECAST_MAD_THRESHOLD, title)
 
-        filename = os.path.join(
-                PATH_RESULTS, f"mad_curves_retraining_{'on' if retrain_model else 'off'}.png"
-            )
+        filename = os.path.join(PATH_RESULTS, f"mad_curves_retraining_{'on' if retrain_model else 'off'}.png")
         fig.savefig(filename, dpi=600)
