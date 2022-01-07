@@ -1,6 +1,6 @@
 import numpy as np
 
-from src.base.forecasting.metrics.mad import compute_mad_curve
+from src.base.forecasting.metrics.mad_curve import compute_mad_curve
 
 
 def test_compute_mad_curve():

@@ -1,11 +1,11 @@
-"""In this file we compute the Maximum Reliable Forecast Horizon based on the MAD curve"""
+"""In this file we compute the Maximum Reliable Lead Time based on the MAD curve"""
 
 import numpy as np
 
 
-def compute_maximum_reliable_forecast_horizon(mad_curve: np.ndarray, threshold: float) -> float:
+def compute_maximum_reliable_lead_time(mad_curve: np.ndarray, threshold: float) -> float:
     """
-    Computes 'Maximum Reliable Forecast Horizon', expressed in # of samples, by evaluating for how many samples
+    Computes 'Maximum Reliable Lead Time', expressed in # of samples, by evaluating for how many samples
     the MAD curve does not exceed the threshold.
 
     The result is returned as a float, by interpolation between the first sample exceeding the threshold and the
