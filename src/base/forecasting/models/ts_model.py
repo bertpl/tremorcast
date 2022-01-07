@@ -9,11 +9,13 @@ class TimeSeriesForecastModel(ABC):
     Abstract class implementing an sklearn-like fit/predict interface for time series forecasting.
     """
 
-    def __init__(self, signal_name: str):
+    def __init__(self, model_type: str, signal_name: str):
         """
         Constructor of TimeSeriesForecastModel class.
+        :param model_type: (str) type of model
         :param signal_name: (str) name of the signal we're forecasting.
         """
+        self.model_type = model_type
         self.signal_name = signal_name
 
     @abstractmethod

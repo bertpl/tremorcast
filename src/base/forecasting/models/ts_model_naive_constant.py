@@ -8,7 +8,7 @@ class TimeSeriesModelNaiveConstant(TimeSeriesForecastModel):
     """Naive timeseries forecast model that always predicts the latest value will stay constant in the future."""
 
     def __init__(self, signal_name: str):
-        super().__init__(signal_name)
+        super().__init__("naive-constant", signal_name)
 
     def fit(self, training_data: pd.DataFrame):
         pass  # nothing needs to be done here
