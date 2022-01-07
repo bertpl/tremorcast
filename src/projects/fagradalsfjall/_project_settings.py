@@ -8,6 +8,8 @@ PATH_ROOT = "_data/tremor_graphs_vedur_faf"
 PATH_SOURCE = os.path.join(PATH_ROOT, "0_scraped")
 PATH_SOURCE_DEBUG = os.path.join(PATH_SOURCE, "debug")
 PATH_DATASET = os.path.join(PATH_ROOT, "1_data")
+PATH_MODELING = os.path.join(PATH_ROOT, "2_modeling")
+PATH_RESULTS = os.path.join(PATH_ROOT, "3_results")
 
 # -------------------------------------------------------------------------
 #  SOURCE FILES
@@ -42,3 +44,6 @@ FILE_DATASET_FULL = os.path.join(PATH_DATASET, "dataset_full")
 FILE_DATASET_SELECTION = os.path.join(PATH_DATASET, "dataset_selection")
 FILE_DATASET_TRAIN = os.path.join(PATH_DATASET, "dataset_train")
 FILE_DATASET_TEST = os.path.join(PATH_DATASET, "dataset_test")
+
+FORECAST_SIGNAL_NAME = "low_mid"
+FORECAST_MAD_THRESHOLD = 200

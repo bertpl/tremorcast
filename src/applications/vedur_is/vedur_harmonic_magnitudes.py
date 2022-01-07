@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from src.base.time_series import HarmonicMagnitudes
 from src.tools.datetime import ts_to_float
 
-from .custom_time_series import MinMeanMaxTimeSeries
+from .custom_time_series import MinMidMaxTimeSeries
 from .vedur import VEDUR_DATA_COLORS, VedurColors, VedurFreqBands
 
 
@@ -18,13 +18,13 @@ class VedurHarmonicMagnitudes(HarmonicMagnitudes):
 
     Specifics are:
       - 3 frequency bands    (0.5-1.0Hz, 1-2Hz, 2-4Hz)
-      - each frequency band has a min, mean & max value
+      - each frequency band has a min, mid & max value
       - colors are set to be consistent with the above linked graphs
 
     """
 
     # --- constructor -------------------------------------
-    def __init__(self, low: MinMeanMaxTimeSeries, mid: MinMeanMaxTimeSeries, hi: MinMeanMaxTimeSeries):
+    def __init__(self, low: MinMidMaxTimeSeries, mid: MinMidMaxTimeSeries, hi: MinMidMaxTimeSeries):
 
         # --- superclass constructor ------------
         super().__init__(
@@ -33,36 +33,36 @@ class VedurHarmonicMagnitudes(HarmonicMagnitudes):
 
         # --- add 3x3 signals -------------------
         self.set_signal(VedurFreqBands.LOW, "min", low.min)
-        self.set_signal(VedurFreqBands.LOW, "mean", low.mean)
+        self.set_signal(VedurFreqBands.LOW, "mid", low.mid)
         self.set_signal(VedurFreqBands.LOW, "max", low.max)
 
         self.set_signal(VedurFreqBands.MID, "min", mid.min)
-        self.set_signal(VedurFreqBands.MID, "mean", mid.mean)
+        self.set_signal(VedurFreqBands.MID, "mid", mid.mid)
         self.set_signal(VedurFreqBands.MID, "max", mid.max)
 
         self.set_signal(VedurFreqBands.HI, "min", hi.min)
-        self.set_signal(VedurFreqBands.HI, "mean", hi.mean)
+        self.set_signal(VedurFreqBands.HI, "mid", hi.mid)
         self.set_signal(VedurFreqBands.HI, "max", hi.max)
 
     # --- convenience -------------------------------------
-    def low(self) -> MinMeanMaxTimeSeries:
-        return MinMeanMaxTimeSeries(
+    def low(self) -> MinMidMaxTimeSeries:
+        return MinMidMaxTimeSeries(
             min=self.get_signal(VedurFreqBands.LOW, "min"),
-            mean=self.get_signal(VedurFreqBands.LOW, "mean"),
+            mid=self.get_signal(VedurFreqBands.LOW, "mid"),
             max=self.get_signal(VedurFreqBands.LOW, "max"),
         )
 
-    def mid(self) -> MinMeanMaxTimeSeries:
-        return MinMeanMaxTimeSeries(
+    def mid(self) -> MinMidMaxTimeSeries:
+        return MinMidMaxTimeSeries(
             min=self.get_signal(VedurFreqBands.MID, "min"),
-            mean=self.get_signal(VedurFreqBands.MID, "mean"),
+            mid=self.get_signal(VedurFreqBands.MID, "mid"),
             max=self.get_signal(VedurFreqBands.MID, "max"),
         )
 
-    def hi(self) -> MinMeanMaxTimeSeries:
-        return MinMeanMaxTimeSeries(
+    def hi(self) -> MinMidMaxTimeSeries:
+        return MinMidMaxTimeSeries(
             min=self.get_signal(VedurFreqBands.HI, "min"),
-            mean=self.get_signal(VedurFreqBands.HI, "mean"),
+            mid=self.get_signal(VedurFreqBands.HI, "mid"),
             max=self.get_signal(VedurFreqBands.HI, "max"),
         )
 

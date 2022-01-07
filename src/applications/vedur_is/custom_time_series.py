@@ -3,11 +3,11 @@ import numpy as np
 from src.base.time_series import MultiTimeSeries, TimeSeries
 
 
-class MinMeanMaxTimeSeries(MultiTimeSeries):
+class MinMidMaxTimeSeries(MultiTimeSeries):
 
     # --- constructor -------------------------------------
-    def __init__(self, min: TimeSeries, mean: TimeSeries, max: TimeSeries):
-        super().__init__([("min", min), ("mean", mean), ("max", max)])
+    def __init__(self, min: TimeSeries, mid: TimeSeries, max: TimeSeries):
+        super().__init__([("min", min), ("mid", mid), ("max", max)])
 
     # --- convenience -------------------------------------
     @property
@@ -15,8 +15,8 @@ class MinMeanMaxTimeSeries(MultiTimeSeries):
         return self["min"]
 
     @property
-    def mean(self) -> TimeSeries:
-        return self["mean"]
+    def mid(self) -> TimeSeries:
+        return self["mid"]
 
     @property
     def max(self) -> TimeSeries:

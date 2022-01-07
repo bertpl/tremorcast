@@ -10,7 +10,7 @@ from src.base.time_series import TimeSeries
 from src.tools.datetime import float_to_ts, ts_to_float
 from src.tools.pillow import ImageDrawPlus
 
-from .custom_time_series import MinMeanMaxTimeSeries
+from .custom_time_series import MinMidMaxTimeSeries
 from .vedur import VedurColors
 from .vedur_harmonic_magnitudes import VedurHarmonicMagnitudes
 
@@ -92,37 +92,35 @@ class VedurHarmonicMagnitudesGraph(Graph):
     #  Data extraction
     # -------------------------------------------------------------------------
     @staticmethod
-    def __postprocess_signal_bands(
-        blue: MinMeanMaxTimeSeries, green: MinMeanMaxTimeSeries, purple: MinMeanMaxTimeSeries
-    ):
-        """Post-process min, mean, max of all 3 colors to fill in missing values."""
+    def __postprocess_signal_bands(blue: MinMidMaxTimeSeries, green: MinMidMaxTimeSeries, purple: MinMidMaxTimeSeries):
+        """Post-process min, mid, max of all 3 colors to fill in missing values."""
 
         # --- BLUE ------------------------------
-        for i in range(1, blue.mean.data.size):
-            if np.isnan(blue.mean.data[i]) and not np.isnan(blue.mean.data[i - 1]):
+        for i in range(1, blue.mid.data.size):
+            if np.isnan(blue.mid.data[i]) and not np.isnan(blue.mid.data[i - 1]):
                 # strategy: repeat previous values
                 # (note: blue.min and blue.max are always both NaN or both non-NaN)
                 blue.min.data[i] = blue.min.data[i - 1]
                 blue.max.data[i] = blue.max.data[i - 1]
-                blue.mean.data[i] = blue.mean.data[i - 1]  # repeat previous value if missing
+                blue.mid.data[i] = blue.mid.data[i - 1]  # repeat previous value if missing
 
         # --- GREEN -----------------------------
-        for i in range(1, green.mean.data.size):
-            if np.isnan(green.mean.data[i]) and not np.isnan(green.mean.data[i - 1]):
+        for i in range(1, green.mid.data.size):
+            if np.isnan(green.mid.data[i]) and not np.isnan(green.mid.data[i - 1]):
                 # strategy: repeat previous value and make sure it lies inside blue range (because it's hidden by it)
                 # (note: green.min and green.max are always both NaN or both non-NaN)
                 green.min.data[i] = np.clip(green.min.data[i - 1], blue.min.data[i], blue.max.data[i])
                 green.max.data[i] = np.clip(green.max.data[i - 1], blue.min.data[i], blue.max.data[i])
-                green.mean.data[i] = np.clip(green.mean.data[i - 1], blue.min.data[i], blue.max.data[i])
+                green.mid.data[i] = np.clip(green.mid.data[i - 1], blue.min.data[i], blue.max.data[i])
 
         # --- PURPLE -----------------------------
-        blue_green_range = MinMeanMaxTimeSeries(
+        blue_green_range = MinMidMaxTimeSeries(
             min=TimeSeries(blue.t0, blue.ts, np.minimum(blue.min.data, green.min.data)),
-            mean=TimeSeries(blue.t0, blue.ts, (blue.mean.data + green.mean.data) / 2),
+            mid=TimeSeries(blue.t0, blue.ts, (blue.mid.data + green.mid.data) / 2),
             max=TimeSeries(blue.t0, blue.ts, np.maximum(blue.max.data, green.max.data)),
         )
-        for i in range(1, purple.mean.data.size):
-            if np.isnan(purple.mean.data[i]) and not np.isnan(purple.mean.data[i - 1]):
+        for i in range(1, purple.mid.data.size):
+            if np.isnan(purple.mid.data[i]) and not np.isnan(purple.mid.data[i - 1]):
                 # strategy: repeat previous value and make sure it lies inside blue & green range (because it's hidden by them)
                 # (note: purple.min and purple.max are always both NaN or both non-NaN)
                 purple.min.data[i] = np.clip(
@@ -131,15 +129,15 @@ class VedurHarmonicMagnitudesGraph(Graph):
                 purple.max.data[i] = np.clip(
                     purple.max.data[i - 1], blue_green_range.min.data[i], blue_green_range.max.data[i]
                 )
-                purple.mean.data[i] = np.clip(
-                    purple.mean.data[i - 1], blue_green_range.min.data[i], blue_green_range.max.data[i]
+                purple.mid.data[i] = np.clip(
+                    purple.mid.data[i - 1], blue_green_range.min.data[i], blue_green_range.max.data[i]
                 )
 
     # -------------------------------------------------------------------------
     #  Extract raw data signals
     # -------------------------------------------------------------------------
-    def __extract_signal_bands(self) -> Tuple[MinMeanMaxTimeSeries, MinMeanMaxTimeSeries, MinMeanMaxTimeSeries]:
-        """Returns a MinMeanMaxTimeSeries object for each of the 3 signals in the graph (blue, green, purple)."""
+    def __extract_signal_bands(self) -> Tuple[MinMidMaxTimeSeries, MinMidMaxTimeSeries, MinMidMaxTimeSeries]:
+        """Returns a MinMidMaxTimeSeries object for each of the 3 signals in the graph (blue, green, purple)."""
 
         # extract x-range
         x_min, x_max = self.__extract_signals_x_range()
@@ -167,7 +165,7 @@ class VedurHarmonicMagnitudesGraph(Graph):
         # return left- and right-most pixel positions
         return min(cols_with_signal), max(cols_with_signal)
 
-    def __extract_single_signal_band(self, pixels: np.ndarray, x_min: int, x_max: int) -> MinMeanMaxTimeSeries:
+    def __extract_single_signal_band(self, pixels: np.ndarray, x_min: int, x_max: int) -> MinMidMaxTimeSeries:
 
         # --- time scale ----------------------------------
         t0 = float_to_ts(self.hor_scale.pixel_to_value(x_min))
@@ -189,8 +187,8 @@ class VedurHarmonicMagnitudesGraph(Graph):
                 y_max[i] = y_scale.pixel_to_value(min(rows_with_color))
                 y_min[i] = y_scale.pixel_to_value(max(rows_with_color))
 
-        return MinMeanMaxTimeSeries(
-            min=TimeSeries(t0, ts, y_min), mean=TimeSeries(t0, ts, (y_min + y_max) / 2), max=TimeSeries(t0, ts, y_max)
+        return MinMidMaxTimeSeries(
+            min=TimeSeries(t0, ts, y_min), mid=TimeSeries(t0, ts, (y_min + y_max) / 2), max=TimeSeries(t0, ts, y_max)
         )
 
     # -------------------------------------------------------------------------
@@ -361,10 +359,8 @@ class VedurHarmonicMagnitudesGraph(Graph):
                     x_pos = x_range[0] + i
                     if not np.isnan(purple.min.data[i]):
                         drw.point(xy=(x_pos, y_scale.value_to_pixel(purple.min.data[i])), fill=VedurColors.PURPLE.value)
-                    if not np.isnan(purple.mean.data[i]):
-                        drw.point(
-                            xy=(x_pos, y_scale.value_to_pixel(purple.mean.data[i])), fill=VedurColors.PURPLE.value
-                        )
+                    if not np.isnan(purple.mid.data[i]):
+                        drw.point(xy=(x_pos, y_scale.value_to_pixel(purple.mid.data[i])), fill=VedurColors.PURPLE.value)
                     if not np.isnan(purple.max.data[i]):
                         drw.point(xy=(x_pos, y_scale.value_to_pixel(purple.max.data[i])), fill=VedurColors.PURPLE.value)
 
@@ -374,8 +370,8 @@ class VedurHarmonicMagnitudesGraph(Graph):
                     x_pos = x_range[0] + i
                     if not np.isnan(green.min.data[i]):
                         drw.point(xy=(x_pos, y_scale.value_to_pixel(green.min.data[i])), fill=VedurColors.GREEN.value)
-                    if not np.isnan(green.mean.data[i]):
-                        drw.point(xy=(x_pos, y_scale.value_to_pixel(green.mean.data[i])), fill=VedurColors.GREEN.value)
+                    if not np.isnan(green.mid.data[i]):
+                        drw.point(xy=(x_pos, y_scale.value_to_pixel(green.mid.data[i])), fill=VedurColors.GREEN.value)
                     if not np.isnan(green.max.data[i]):
                         drw.point(xy=(x_pos, y_scale.value_to_pixel(green.max.data[i])), fill=VedurColors.GREEN.value)
 
@@ -385,8 +381,8 @@ class VedurHarmonicMagnitudesGraph(Graph):
                     x_pos = x_range[0] + i
                     if not np.isnan(blue.min.data[i]):
                         drw.point(xy=(x_pos, y_scale.value_to_pixel(blue.min.data[i])), fill=VedurColors.BLUE.value)
-                    if not np.isnan(blue.mean.data[i]):
-                        drw.point(xy=(x_pos, y_scale.value_to_pixel(blue.mean.data[i])), fill=VedurColors.BLUE.value)
+                    if not np.isnan(blue.mid.data[i]):
+                        drw.point(xy=(x_pos, y_scale.value_to_pixel(blue.mid.data[i])), fill=VedurColors.BLUE.value)
                     if not np.isnan(blue.max.data[i]):
                         drw.point(xy=(x_pos, y_scale.value_to_pixel(blue.max.data[i])), fill=VedurColors.BLUE.value)
 
