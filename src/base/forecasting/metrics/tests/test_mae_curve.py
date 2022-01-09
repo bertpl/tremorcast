@@ -1,9 +1,9 @@
 import numpy as np
 
-from src.base.forecasting.metrics.mad_curve import compute_mad_curve
+from src.base.forecasting.metrics.mae_curve import compute_mae_curve
 
 
-def test_compute_mad_curve():
+def test_compute_mae_curve():
 
     # --- arrange -----------------------------------------
     observations = np.array([0, 1, 2, 2, 2])
@@ -15,10 +15,10 @@ def test_compute_mad_curve():
         (3, np.array([2, 3])),  # abs. deviations: [0, 1]
     ]
 
-    expected_mad_curve = np.array([0, 3 / 4, 3 / 3])
+    expected_mae_curve = np.array([0, 3 / 4, 3 / 3])
 
     # --- act ---------------------------------------------
-    mad_curve = compute_mad_curve(observations, forecasts)
+    mae_curve = compute_mae_curve(observations, forecasts)
 
     # --- assert ------------------------------------------
-    np.testing.assert_array_almost_equal(expected_mad_curve, mad_curve)
+    np.testing.assert_array_almost_equal(expected_mae_curve, mae_curve)

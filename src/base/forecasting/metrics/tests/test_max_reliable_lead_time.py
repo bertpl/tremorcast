@@ -7,7 +7,7 @@ from src.base.forecasting.metrics.max_reliable_lead_time import compute_maximum_
 
 
 @pytest.mark.parametrize(
-    "mad_curve, threshold, expected_result",
+    "mae_curve, threshold, expected_result",
     [
         ([10, 20, 30, 40, 50], 15, 1.5),  # regular case
         ([10, 20, 11, 12, 13], 15, 1.5),  # non-monotonously increasing mad curve
@@ -15,10 +15,10 @@ from src.base.forecasting.metrics.max_reliable_lead_time import compute_maximum_
         ([10, 20, 30, 40, 50], 60, np.inf),  # corner case: threshold high
     ],
 )
-def test_compute_maximum_reliable_lead_time(mad_curve: List[float], threshold: float, expected_result: float):
+def test_compute_maximum_reliable_lead_time(mae_curve: List[float], threshold: float, expected_result: float):
 
     # --- act ---------------------------------------------
-    result = compute_maximum_reliable_lead_time(np.array(mad_curve), threshold)
+    result = compute_maximum_reliable_lead_time(np.array(mae_curve), threshold)
 
     # --- assert ------------------------------------------
     assert result == expected_result

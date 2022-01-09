@@ -47,5 +47,4 @@ def plot_forecasts(
         ax.plot(x, forecast, "k", lw=1, scalex=False, scaley=False)
 
     # --- return ------------------------------------------
-    plt.show()
     return fig, ax

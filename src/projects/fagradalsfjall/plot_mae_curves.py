@@ -4,16 +4,16 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-def plot_mad_curves(mad_curves: Dict[str, np.ndarray], threshold: float, title: str) -> Tuple[plt.Figure, plt.Axes]:
+def plot_mae_curves(mae_curves: Dict[str, np.ndarray], threshold: float, title: str) -> Tuple[plt.Figure, plt.Axes]:
 
     # --- init --------------------------------------------
-    max_value = max(max(mad_curve) for mad_curve in mad_curves.values())
-    n_curves = len(mad_curves)
-    n_samples = min(len(mad_curve) for mad_curve in mad_curves.values())
+    max_value = max(max(mae_curve) for mae_curve in mae_curves.values())
+    n_curves = len(mae_curves)
+    n_samples = min(len(mae_curve) for mae_curve in mae_curves.values())
 
     # --- prepare data ------------------------------------
-    all_mad_curves = np.concatenate(
-        [mad_curve.reshape((1, len(mad_curve))) for mad_curve in mad_curves.values()], axis=0
+    all_mae_curves = np.concatenate(
+        [mae_curve.reshape((1, len(mae_curve))) for mae_curve in mae_curves.values()], axis=0
     )
     x_values = np.log(np.arange(1, n_samples + 1).reshape((1, n_samples)))
 
@@ -21,7 +21,7 @@ def plot_mad_curves(mad_curves: Dict[str, np.ndarray], threshold: float, title: 
     fig, ax = plt.subplots()  # type: plt.Figure, plt.Axes
     fig.suptitle(title)
 
-    ax.plot(x_values.transpose(), all_mad_curves.transpose(), lw=1)
+    ax.plot(x_values.transpose(), all_mae_curves.transpose(), lw=1)
     ax.plot([-1, 1000], [threshold, threshold], ls="--", c="grey", lw=1)
 
     # --- finalize layout ---------------------------------
@@ -32,7 +32,7 @@ def plot_mad_curves(mad_curves: Dict[str, np.ndarray], threshold: float, title: 
     ax.set_xticklabels(["15m", "30m", "1h", "2h", "4h", "6h", "12h", "24h", "36h", "2d", "3d", "4d", "6d", "8d", "10d"])
     ax.grid(visible=True, axis="x")
 
-    ax.legend(list(mad_curves.keys()), loc="upper left")
+    ax.legend(list(mae_curves.keys()), loc="upper left")
 
     ax.set_xlabel("Forecast Lead Time")
     ax.set_ylabel("Mean-Absolute-Deviation \n (log-magnitude)")
@@ -41,5 +41,4 @@ def plot_mad_curves(mad_curves: Dict[str, np.ndarray], threshold: float, title: 
     fig.tight_layout()
 
     # --- return ------------------------------------------
-    plt.show()
     return fig, ax

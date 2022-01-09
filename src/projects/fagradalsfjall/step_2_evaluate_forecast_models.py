@@ -12,12 +12,12 @@ from src.base.forecasting.simulation import simulate_time_series_model
 from ._project_settings import (
     FILE_DATASET_TEST,
     FILE_DATASET_TRAIN,
-    FORECAST_MAD_THRESHOLD,
+    FORECAST_MAE_THRESHOLD,
     FORECAST_SIGNAL_NAME,
     PATH_RESULTS,
 )
 from .plot_forecasts import plot_forecasts
-from .plot_mad_curves import plot_mad_curves
+from .plot_mae_curves import plot_mae_curves
 
 
 def evaluate_forecast_models():
@@ -44,7 +44,7 @@ def evaluate_forecast_models():
 
     for retrain_model in [False, True]:
 
-        mad_curves = dict()  # type: Dict[str, np.ndarray]
+        mae_curves = dict()  # type: Dict[str, np.ndarray]
 
         for model_type in model_types_to_evaluate:
 
@@ -52,15 +52,15 @@ def evaluate_forecast_models():
             model = models_dict[model_type]
 
             # --- simulate ------------
-            forecasts, mad_curve, horizon = simulate_time_series_model(
+            forecasts, mae_curve, horizon = simulate_time_series_model(
                 model=model,
                 training_data=df_train,
                 test_data=df_test,
-                accuracy_threshold=FORECAST_MAD_THRESHOLD,
+                accuracy_threshold=FORECAST_MAE_THRESHOLD,
                 horizon=10 * 96,  # 10 days
                 retrain_model=retrain_model,
             )
-            mad_curves[model_type] = mad_curve
+            mae_curves[model_type] = mae_curve
 
             # --- plot forecasts ------
             indices = [96 + i * 48 for i in range(20)]
@@ -74,15 +74,15 @@ def evaluate_forecast_models():
             )
             fig.savefig(base_fig_filename + "_forecasts.png", dpi=600)
 
-            # --- plot MAD ------------
-            title = f"MAD curve (model: {model_type}, retraining {'ON' if retrain_model else 'OFF'})"
-            fig, ax = plot_mad_curves({model_type: mad_curve}, FORECAST_MAD_THRESHOLD, title)
+            # --- plot MAE ------------
+            title = f"MAE curve (model: {model_type}, retraining {'ON' if retrain_model else 'OFF'})"
+            fig, ax = plot_mae_curves({model_type: mae_curve}, FORECAST_MAE_THRESHOLD, title)
 
-            fig.savefig(base_fig_filename + "_mad_curve.png", dpi=600)
+            fig.savefig(base_fig_filename + "_mae_curve.png", dpi=600)
 
-        # --- compare MAD curves ----------------
-        title = f"MAD curves (retraining {'ON' if retrain_model else 'OFF'})"
-        fig, ax = plot_mad_curves(mad_curves, FORECAST_MAD_THRESHOLD, title)
+        # --- compare MAE curves ----------------
+        title = f"MAE curves (retraining {'ON' if retrain_model else 'OFF'})"
+        fig, ax = plot_mae_curves(mae_curves, FORECAST_MAE_THRESHOLD, title)
 
-        filename = os.path.join(PATH_RESULTS, f"mad_curves_retraining_{'on' if retrain_model else 'off'}.png")
+        filename = os.path.join(PATH_RESULTS, f"mae_curves_retraining_{'on' if retrain_model else 'off'}.png")
         fig.savefig(filename, dpi=600)

@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
-from src.base.forecasting.metrics import compute_mad_curve, compute_maximum_reliable_lead_time
+from src.base.forecasting.metrics import compute_mae_curve, compute_maximum_reliable_lead_time
 from src.base.forecasting.models import TimeSeriesForecastModel
 
 
@@ -27,7 +27,7 @@ def simulate_time_series_model(
          - construct history as training data + first i-1 test data samples
          - if retrain_model==True --> train model on history
          - use model to predict next min(horizon, remaining samples in test set) samples
-      -  compute MAD curve & maximum reliable forecast horizon
+      -  compute MAE curve & maximum reliable forecast horizon
 
     :param model: TimeSeriesForecastModel to be evaluated; need not be trained.
     :param training_data: (pd.DataFrame) training data set
@@ -35,7 +35,7 @@ def simulate_time_series_model(
     :param accuracy_threshold: (float) threshold to be used to compute max_reliable_lead_time
     :param horizon: (int) (max) number of samples to predict ahead
     :param retrain_model: (bool, default=False) if True the model is retrained as more data becomes available.
-    :return: (forecasts, mad_curve, max_reliable_lead_time)
+    :return: (forecasts, mae_curve, max_reliable_lead_time)
     """
 
     # --- initial training --------------------------------
@@ -68,13 +68,13 @@ def simulate_time_series_model(
 
     # --- compute metrics & return ------------------------
     observations = test_data[model.signal_name].to_numpy()
-    mad_curve = compute_mad_curve(observations, forecasts)
-    max_reliable_lead_time = compute_maximum_reliable_lead_time(mad_curve, accuracy_threshold)
+    mae_curve = compute_mae_curve(observations, forecasts)
+    max_reliable_lead_time = compute_maximum_reliable_lead_time(mae_curve, accuracy_threshold)
 
     print()
-    print(f"min(MAD)               = {min(mad_curve):.1f}")
-    print(f"max(MAD)               = {max(mad_curve):.1f}")
+    print(f"min(MAE)               = {min(mae_curve):.1f}")
+    print(f"max(MAE)               = {max(mae_curve):.1f}")
     print(f"max_reliable_lead_time = {max_reliable_lead_time:.3f} samples")
     print()
 
-    return forecasts, mad_curve, max_reliable_lead_time
+    return forecasts, mae_curve, max_reliable_lead_time
