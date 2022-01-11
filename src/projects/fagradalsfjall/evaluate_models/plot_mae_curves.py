@@ -3,8 +3,12 @@ from typing import Dict, Tuple
 import matplotlib.pyplot as plt
 import numpy as np
 
+from src.tools.matplotlib import plot_style_matplotlib_default
+
 
 def plot_mae_curves(mae_curves: Dict[str, np.ndarray], threshold: float, title: str) -> Tuple[plt.Figure, plt.Axes]:
+
+    plot_style_matplotlib_default()
 
     # --- init --------------------------------------------
     max_value = max(max(mae_curve) for mae_curve in mae_curves.values())

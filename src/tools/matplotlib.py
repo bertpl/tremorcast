@@ -1,6 +1,7 @@
 import datetime
 from typing import Iterable, List, Tuple
 
+import darts
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -116,3 +117,16 @@ def __compute_scale_with_margin(scale_min: float, scale_max: float, margin: floa
         delta = 1
 
     return scale_min - (margin * delta), scale_max + (margin * delta)
+
+
+# -------------------------------------------------------------------------
+#  Plotting styles
+# -------------------------------------------------------------------------
+def plot_style_darts():
+    # this is what darts does by default (triggered by 'import darts')
+    plt.rcParams.update(darts.u8plots_mplstyle)
+
+
+def plot_style_matplotlib_default():
+    # this overrides the overrides from darts back to the default values
+    plt.rcdefaults()
