@@ -1,13 +1,13 @@
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
 
 from src.applications.vedur_is import VedurHarmonicMagnitudes
 from src.applications.vedur_is.vedur import VedurColors
+from src.projects.fagradalsfjall._project_settings import FORECAST_SIGNAL_NAME
 from src.tools.datetime import ts_to_float
-
-from ._project_settings import FORECAST_SIGNAL_NAME
+from src.tools.matplotlib import plot_style_matplotlib_default
 
 
 def plot_forecasts(
@@ -20,6 +20,8 @@ def plot_forecasts(
     """
     Plot requested forecasts.
     """
+
+    plot_style_matplotlib_default()
 
     # --- base plot ---------------------------------------
     i_first = max([0, min(indices) - 1 * 96])  # 1 day before start of first forecast
@@ -38,10 +40,19 @@ def plot_forecasts(
 
     # --- plot forecasts ----------------------------------
     for i in indices:
-        forecast = forecasts[i][1]  # type: np.ndarray
 
-        forecast = forecast[0:horizon]
-        x = x_values[i : i + len(forecast)]
+        # find forecast that most closely starts at request i
+        best_i = None  # type: Optional[int]
+        best_forecast = None  # type: Optional[np.ndarray]
+        for i_start, forecast in forecasts:
+            if (best_i is None) or (abs(i_start - i) < abs(best_i - i)):
+                best_i = i_start
+                best_forecast = forecast
+
+        # forecast = forecasts[i][1]  # type: np.ndarray
+
+        forecast = best_forecast[0:horizon]
+        x = x_values[best_i : i + len(forecast)]
 
         ax.plot(x[0], forecast[0], "ko", scalex=False, scaley=False)
         ax.plot(x, forecast, "k", lw=1, scalex=False, scaley=False)

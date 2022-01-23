@@ -21,6 +21,8 @@ matplotlib >= 3.5
 --find-links https://download.pytorch.org/whl/torch_stable.html
 torch == 1.9.1
 scikit-learn >= 1.0
+# darts >= 0.15.0
+u8darts[torch]   # = darts core + pytorch, hence no prophet
 
 # --- other -----------------
 tqdm >= 4.62
