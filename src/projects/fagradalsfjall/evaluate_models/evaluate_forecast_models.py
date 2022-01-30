@@ -91,8 +91,9 @@ def evaluate_forecast_models(
 
                 # --- MAE metrics -----
                 print()
-                print(f"min(MAE)               = {min(mae_curve):.1f}")
-                print(f"max(MAE)               = {max(mae_curve):.1f}")
+                print(f"min(MAE)               = {np.min(mae_curve):.1f}")
+                print(f"avg(MAE)               = {np.mean(mae_curve):.1f}")
+                print(f"max(MAE)               = {np.max(mae_curve):.1f}")
                 print(f"max_reliable_lead_time = {max_reliable_lead_time:.3f} samples")
                 print()
 

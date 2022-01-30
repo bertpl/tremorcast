@@ -1,5 +1,8 @@
 from .ts_model import TimeSeriesForecastModel
 from .ts_model_darts_arima import TimeSeriesModelDartsArima
 from .ts_model_darts_linear_regression import TimeSeriesModelDartsLinearRegression
+from .ts_model_n_step_ahead import loss_mae, loss_rmse
+from .ts_model_n_step_ahead_ols import TimeSeriesModelMultiStepOLS
+from .ts_model_n_step_ahead_pls import TimeSeriesModelMultiStepPLS
 from .ts_model_naive_constant import TimeSeriesModelNaiveConstant
 from .ts_model_naive_mean import TimeSeriesModelNaiveMean
