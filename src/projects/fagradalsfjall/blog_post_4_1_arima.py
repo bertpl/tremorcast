@@ -19,8 +19,8 @@ def evaluate_arima_models():
 
     arima_models = {
         # AR models
-        "ar-12": TimeSeriesModelDartsLinearRegression(FORECAST_SIGNAL_NAME, n=12),
-        "ar-18": TimeSeriesModelDartsLinearRegression(FORECAST_SIGNAL_NAME, n=18),
+        "ar-12": TimeSeriesModelDartsLinearRegression(FORECAST_SIGNAL_NAME, p=12),
+        "ar-18": TimeSeriesModelDartsLinearRegression(FORECAST_SIGNAL_NAME, p=18),
         # ARMA models
         "arma-1-1": TimeSeriesModelDartsArima(FORECAST_SIGNAL_NAME, p=1, q=1, d=0),
         "arma-6-6": TimeSeriesModelDartsArima(FORECAST_SIGNAL_NAME, p=6, q=6, d=0),

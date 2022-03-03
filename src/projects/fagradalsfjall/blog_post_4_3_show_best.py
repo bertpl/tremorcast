@@ -25,7 +25,7 @@ def show_best_linear_models():
 
     best_lin_models = {
         "arma-12-12": TimeSeriesModelDartsArima(FORECAST_SIGNAL_NAME, p=12, q=12, d=0),
-        "ar-192": TimeSeriesModelDartsLinearRegression(FORECAST_SIGNAL_NAME, n=192),
+        "ar-192": TimeSeriesModelDartsLinearRegression(FORECAST_SIGNAL_NAME, p=192),
     }
 
     # --- plot results ------------------------------------

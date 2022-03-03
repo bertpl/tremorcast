@@ -187,5 +187,5 @@ class TimeSeriesForecastModelAutoScaled(TimeSeriesForecastModel):
         pass
 
     @abstractmethod
-    def _predict(self, scaled_history: pd.DataFrame, n_samples: int):
+    def _predict(self, scaled_history: pd.DataFrame, n_samples: int) -> np.ndarray:
         pass

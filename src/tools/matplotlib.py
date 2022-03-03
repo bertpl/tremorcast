@@ -102,6 +102,76 @@ def optimal_ticks(n_ticks: int, *, min_value: float = None, max_value: float = N
 
 
 # -------------------------------------------------------------------------
+#  Plotting special shapes
+# -------------------------------------------------------------------------
+def plot_curly_braces(
+    ax: plt.Axes, xy_from: Tuple[float, float], xy_to: Tuple[float, float], height: float = None, **line_kwargs
+) -> np.ndarray:
+    """
+    Plot curly braces on matplotlib axes by providing coordinates from and to + height.
+    :param ax: matplotlib Axes
+    :param xy_from: (x, y) from which bracket starts
+    :param xy_to: (x, y) where bracket ends
+    :param height: (float, default = 0.1*length) abs height of braces
+    :param line_kwargs: optional kwargs for determining plot style
+    :return: (x, y) top of the pointy end of curly brace
+    """
+
+    # --- process xy_from, xy_to, height ------------------
+    xy_from = np.array(xy_from)
+    xy_to = np.array(xy_to)
+    xy_mid = (xy_from + xy_to) / 2
+
+    xy_len = xy_to - xy_from
+    length = np.linalg.norm(xy_len)
+    if height is None:
+        height = length * 0.1
+    height = min(height, length / 2)  # height should be <= length/2
+
+    xy_height = np.array([xy_len[1], -xy_len[0]]) * (height / length)
+
+    c = (height / 2) / length  # fraction of circle segment radius wrt length
+
+    # --- process line_kwargs -----------------------------
+    line_kwargs = line_kwargs or dict()
+    line_kwargs["solid_capstyle"] = "round"
+    line_kwargs["solid_joinstyle"] = "round"
+    line_kwargs["dash_capstyle"] = "round"
+    line_kwargs["dash_joinstyle"] = "round"
+
+    # --- helper - circle segments ------------------------
+    def circle_segment(center, v1, v2, angle_from, angle_to) -> np.array:
+
+        n_coords = 30
+        coords = np.zeros((n_coords, 2))
+
+        for i, angle_deg in enumerate(np.linspace(angle_from, angle_to, n_coords)):
+            angle_rad = np.deg2rad(angle_deg)
+            coords[i, :] = (center + np.sin(angle_rad) * v1 + np.cos(angle_rad) * v2).reshape(1, 2)
+
+        return coords
+
+    # --- plot actual brace -------------------------------
+    circ_v1 = c * xy_len
+    circ_v2 = 0.5 * xy_height
+
+    all_coords = np.concatenate(
+        [
+            circle_segment(xy_from + circ_v1, circ_v1, circ_v2, -90, 0),
+            circle_segment(xy_mid - circ_v1 + xy_height, circ_v1, circ_v2, 180, 90),
+            circle_segment(xy_mid + circ_v1 + xy_height, circ_v1, circ_v2, 270, 180),
+            circle_segment(xy_to - circ_v1, circ_v1, circ_v2, 0, 90),
+        ],
+        axis=0,
+    )
+
+    ax.plot(all_coords[:, 0], all_coords[:, 1], **line_kwargs)
+
+    # --- return tip --------------------------------------
+    return xy_mid + xy_height
+
+
+# -------------------------------------------------------------------------
 #  Internal helpers
 # -------------------------------------------------------------------------
 def __compute_ticks(min_value: float, max_value: float, tick_delta: float) -> List[float]:

@@ -20,14 +20,14 @@ from .ts_model import TimeSeriesForecastModelAutoScaled
 class TimeSeriesModelDartsLinearRegression(TimeSeriesForecastModelAutoScaled):
     """Linear regression model based on the darts package."""
 
-    def __init__(self, signal_name: str, n: int, alpha: float = 0.0):
+    def __init__(self, signal_name: str, p: int, alpha: float = 0.0):
         if alpha == 0.0:
-            model_type = f"ar-{n}"
+            model_type = f"ar-{p}"
         else:
-            model_type = f"ar-{n}-{alpha:.1e}"
+            model_type = f"ar-{p}-{alpha:.1e}"
         super().__init__(model_type, signal_name)
-        self.n = n
-        self.model = RegressionModel(lags=n, model=Ridge(alpha=alpha, fit_intercept=False))
+        self.p = p
+        self.model = RegressionModel(lags=p, model=Ridge(alpha=alpha, fit_intercept=False))
 
     def _fit(self, training_data: pd.DataFrame):
         ts_train = TimeSeries.from_series(training_data[self.signal_name])

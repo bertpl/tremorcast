@@ -23,12 +23,12 @@ def evaluate_high_order_ar_models():
     }
 
     ar_models = {
-        "ar-12": TimeSeriesModelDartsLinearRegression(FORECAST_SIGNAL_NAME, n=12),
-        "ar-24": TimeSeriesModelDartsLinearRegression(FORECAST_SIGNAL_NAME, n=24),
-        "ar-48": TimeSeriesModelDartsLinearRegression(FORECAST_SIGNAL_NAME, n=48),
-        "ar-96": TimeSeriesModelDartsLinearRegression(FORECAST_SIGNAL_NAME, n=96),
-        "ar-192": TimeSeriesModelDartsLinearRegression(FORECAST_SIGNAL_NAME, n=192),
-        "ar-384": TimeSeriesModelDartsLinearRegression(FORECAST_SIGNAL_NAME, n=384),
+        "ar-12": TimeSeriesModelDartsLinearRegression(FORECAST_SIGNAL_NAME, p=12),
+        "ar-24": TimeSeriesModelDartsLinearRegression(FORECAST_SIGNAL_NAME, p=24),
+        "ar-48": TimeSeriesModelDartsLinearRegression(FORECAST_SIGNAL_NAME, p=48),
+        "ar-96": TimeSeriesModelDartsLinearRegression(FORECAST_SIGNAL_NAME, p=96),
+        "ar-192": TimeSeriesModelDartsLinearRegression(FORECAST_SIGNAL_NAME, p=192),
+        "ar-384": TimeSeriesModelDartsLinearRegression(FORECAST_SIGNAL_NAME, p=384),
     }
 
     # --- evaluate ----------------------------------------
