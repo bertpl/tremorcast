@@ -200,3 +200,4 @@ def plot_style_darts():
 def plot_style_matplotlib_default():
     # this overrides the overrides from darts back to the default values
     plt.rcdefaults()
+    plt.rcParams["savefig.facecolor"] = "white"
