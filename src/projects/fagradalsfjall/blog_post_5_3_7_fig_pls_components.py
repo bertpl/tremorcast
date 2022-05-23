@@ -4,8 +4,8 @@ import pickle
 import matplotlib.pyplot as plt
 import numpy as np
 
-from src.tools.matplotlib import plot_style_matplotlib_default
 from src.base.forecasting.models import TimeSeriesModelMultiStepPLS
+from src.tools.matplotlib import plot_style_matplotlib_default
 
 from .evaluate_models.evaluate_forecast_models import _get_output_path
 
@@ -17,10 +17,10 @@ def fig_pls_components():
     pkl_filename = os.path.join(base_path, "n-step-pls-288-288-7_retraining_off_simdata.pkl")
 
     with open(pkl_filename, "rb") as f:
-        model, *_ = pickle.load(f)      # Type: TimeSeriesModelMultiStepPLS, Any
+        model, *_ = pickle.load(f)  # Type: TimeSeriesModelMultiStepPLS, Any
 
     # --- plot --------------------------------------------
-    fig, ax = model.plot_components(n=7)   # type: plt.Figure, plt.Axes
+    fig, ax = model.plot_components(n=7)  # type: plt.Figure, plt.Axes
 
     # final figure decoration
     # fig.suptitle("PLS components in feature & target space")

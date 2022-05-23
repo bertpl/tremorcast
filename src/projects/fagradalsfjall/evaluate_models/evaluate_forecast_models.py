@@ -7,6 +7,7 @@ import numpy as np
 from src.applications.vedur_is import VedurHarmonicMagnitudes
 from src.base.forecasting.evaluation import simulate_time_series_model
 from src.base.forecasting.models import TimeSeriesForecastModel
+from src.projects.fagradalsfjall.evaluate_models.construct_data_sets import get_dataset_test, get_dataset_train
 from src.projects.fagradalsfjall.evaluate_models.plot_forecasts import plot_forecasts
 from src.projects.fagradalsfjall.evaluate_models.plot_mae_curves import plot_mae_curves
 
@@ -31,22 +32,16 @@ def evaluate_forecast_models(
         retrain = [retrain]
 
     # --- import general settings -------------------------
-    from src.projects.fagradalsfjall._project_settings import (
-        FILE_DATASET_TEST,
-        FILE_DATASET_TRAIN,
-        FORECAST_MAE_THRESHOLD,
-    )
+    from src.projects.fagradalsfjall._project_settings import FORECAST_MAE_THRESHOLD
 
     # --- load test & training data sets ------------------
     if data_train is None:
-        with open(FILE_DATASET_TRAIN + ".pkl", "rb") as f:
-            data_train = pickle.load(f)  # type: VedurHarmonicMagnitudes
+        data_train = get_dataset_train()
     df_train = data_train.to_dataframe()
 
     if data_test is None:
-        with open(FILE_DATASET_TEST + ".pkl", "rb") as f:
-            data_test = pickle.load(f)  # type: VedurHarmonicMagnitudes
-            df_test = data_test.to_dataframe()
+        data_test = get_dataset_test()
+    df_test = data_test.to_dataframe()
 
     # --- simulate ----------------------------------------
     output_path = _get_output_path(results_sub_folder)

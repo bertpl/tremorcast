@@ -27,7 +27,7 @@ def fig_one_vs_n_step_ahead_time_series():
     # --- create time series ------------------------------
     np.random.seed(2)
     x = np.arange(start=1, stop=21)
-    y = 0.1 + (0.1 * x) - (0.002 * (x ** 2)) + 0.1 * np.random.normal(size=x.shape)
+    y = 0.1 + (0.1 * x) - (0.002 * (x**2)) + 0.1 * np.random.normal(size=x.shape)
 
     for ax, p, n in [(ax_left, 7, 1), (ax_right, 7, 5)]:  # type: plt.Axes, int, int
 

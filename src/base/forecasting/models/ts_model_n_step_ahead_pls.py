@@ -1,4 +1,4 @@
-from typing import Any, List, Optional, Tuple
+from typing import Any, List, Optional, Tuple, Union
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -49,7 +49,7 @@ class TimeSeriesModelMultiStepPLS(TimeSeriesModelMultiStepLinear):
             copy=True,
         )
 
-    def _model_complexity(self) -> float:
+    def _model_complexity(self) -> Union[float, tuple]:
         # roughly speaking the number of free parameters in the model
         return self.p * self.rank
 
