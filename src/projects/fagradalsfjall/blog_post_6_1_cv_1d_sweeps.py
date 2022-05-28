@@ -19,9 +19,9 @@ from .evaluate_models.evaluate_forecast_models import _get_output_path
 #  Sweep ENUM
 # =================================================================================================
 class Sweep(Enum):
-    N_EPOCHS_VALLEY = auto()
-    N_EPOCHS_MEDIUM = auto()
-    N_EPOCHS_MINIMUM = auto()
+    N_EPOCHS_LR_MAX_VALLEY = auto()
+    N_EPOCHS_LR_MAX_INTERMEDIATE = auto()
+    N_EPOCHS_LR_MAX_MINIMUM = auto()
     N_EPOCHS_WD_LO = auto()
     N_EPOCHS_WD_HI = auto()
     N_EPOCHS_SHALLOW = auto()
@@ -42,9 +42,9 @@ def blog_6_cv_1d_sweeps(n: int, do_train: bool = True, do_plot: bool = True):
     # --- define sweeps -----------------------------------
 
     sweeps = [
-        Sweep.N_EPOCHS_VALLEY,
-        Sweep.N_EPOCHS_MEDIUM,
-        Sweep.N_EPOCHS_MINIMUM,
+        Sweep.N_EPOCHS_LR_MAX_VALLEY,
+        Sweep.N_EPOCHS_LR_MAX_INTERMEDIATE,
+        Sweep.N_EPOCHS_LR_MAX_MINIMUM,
         Sweep.N_EPOCHS_WD_LO,
         Sweep.N_EPOCHS_WD_HI,
         Sweep.N_EPOCHS_SHALLOW,
@@ -64,7 +64,7 @@ def blog_6_cv_1d_sweeps(n: int, do_train: bool = True, do_plot: bool = True):
         if do_train:
 
             print("-" * 120)
-            print(f"SWEEP: {sweep}")
+            print(f"SWEEP: {sweep} --- N: {n}")
             print("-" * 120)
             print()
 
@@ -97,6 +97,16 @@ def _get_cv_settings(sweep: Sweep, n: int) -> Tuple[dict, str, bool, str]:
     """
 
     # --- nominal settings --------------------------------
+
+    # larger n seems to benefit from larger n_epochs without risk of overfitting or instability
+    if n < 24:
+        nominal_n_epochs = 100
+    elif n < 96:
+        nominal_n_epochs = 200
+    else:
+        nominal_n_epochs = 500
+
+    # other settings
     cv_settings = dict(
         n_splits=10,
         randomize=True,
@@ -107,7 +117,7 @@ def _get_cv_settings(sweep: Sweep, n: int) -> Tuple[dict, str, bool, str]:
             "n": [n],
             "p": [96],
             "wd": [0.1],
-            "n_epochs": [100],
+            "n_epochs": [nominal_n_epochs],
             "lr_max_method": ["minimum"],
         },
     )
@@ -126,17 +136,17 @@ def _get_cv_settings(sweep: Sweep, n: int) -> Tuple[dict, str, bool, str]:
         cv_settings["param_grid"]["n_epochs"] = [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000]
         param_name = "n_epochs"
         sub_title = "wd=1.0"
-    elif sweep == Sweep.N_EPOCHS_VALLEY:
+    elif sweep == Sweep.N_EPOCHS_LR_MAX_VALLEY:
         cv_settings["param_grid"]["lr_max_method"] = ["valley"]
         cv_settings["param_grid"]["n_epochs"] = [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000]
         param_name = "n_epochs"
         sub_title = "lr_max='valley'"
-    elif sweep == Sweep.N_EPOCHS_MEDIUM:
+    elif sweep == Sweep.N_EPOCHS_LR_MAX_INTERMEDIATE:
         cv_settings["param_grid"]["lr_max_method"] = ["intermediate"]
         cv_settings["param_grid"]["n_epochs"] = [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000]
         param_name = "n_epochs"
         sub_title = "lr_max='intermediate'"
-    elif sweep == Sweep.N_EPOCHS_MINIMUM:
+    elif sweep == Sweep.N_EPOCHS_LR_MAX_MINIMUM:
         cv_settings["param_grid"]["lr_max_method"] = ["minimum"]
         cv_settings["param_grid"]["n_epochs"] = [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000]
         param_name = "n_epochs"
