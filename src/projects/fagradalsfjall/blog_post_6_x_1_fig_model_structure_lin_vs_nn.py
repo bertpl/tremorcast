@@ -1,10 +1,8 @@
-import dataclasses
 import os
-from typing import Any, List, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib.patches import FancyBboxPatch, Polygon, Rectangle
+from matplotlib.patches import FancyBboxPatch, Polygon
 
 from src.tools.matplotlib import plot_style_matplotlib_default
 
@@ -19,9 +17,9 @@ def fig_lin_vs_nn():
 
     # --- row / col dims ----------------------------------
     col_x_lims = [(-1, 1), (-9, 9), (-10, 10), (-11, 11)]
-    row_y_lims = [(-4.5, 8), (-4.5, 9)]
+    row_y_lims = [(-4.5, 8), (-5, 10)]
 
-    fig_size = [18, 10]
+    fig_size = [18, 10.5]
 
     col_widths = [x_max - x_min for x_min, x_max in col_x_lims]
     row_heights = [y_max - y_min for y_min, y_max in row_y_lims]
@@ -49,10 +47,19 @@ def fig_lin_vs_nn():
     gradient_from = (0.9, 0.9, 0.9)
     gradient_to = (0.95, 0.95, 0.95)
 
+    black = (0, 0, 0)
+    almost_black = (0.2, 0.2, 0.2)
+
+    light_blue = (0.4, 0.4, 0.8)
+    lighter_blue = (0.6, 0.6, 0.9)
+
+    dark_green = (0.2, 0.6, 0.2)
+    light_green = (0.4, 0.8, 0.4)
+
     # --- titles ------------------------------------------
-    title_style = dict(ha="center", fontsize=14, color=(0.0, 0.0, 0.0), weight="bold")
-    subtitle_style = dict(ha="center", fontsize=14, color=(0.2, 0.2, 0.2))
-    subsubtitle_style = dict(ha="center", fontsize=12, color=(0.4, 0.4, 0.8), weight="bold")
+    title_style = dict(ha="center", fontsize=14, color=black, weight="bold")
+    subtitle_style = dict(ha="center", fontsize=14, color=almost_black)
+    subsubtitle_style = dict(ha="center", fontsize=12, color=light_blue, weight="bold")
     rowtitle_style = dict(**title_style, rotation="vertical", va="center")
 
     y_title_pos = 7.5
@@ -109,7 +116,7 @@ def fig_lin_vs_nn():
 
     # --- n-step-ahead - PLS ------------------------------
     plot_vector(ax_top_right, -9, 7, None, light_grey, "p")
-    plot_vector(ax_top_right, 0, 2, None, light_grey, "n_PLS")
+    plot_vector(ax_top_right, 0, 2, None, light_grey, "\n$n_{PLS}$")
     plot_vector(ax_top_right, 9, 5, None, light_grey, "n")
 
     plot_mapping(ax_top_right, -9, 0, 7, 2, gradient_from, gradient_to, mapping_name="linear\nmapping")
@@ -131,9 +138,24 @@ def fig_lin_vs_nn():
     ax_bot_rowtitle.set_ylim(bottom=-4.5, top=8)
 
     # --- 1-step-ahead - NN-AR ----------------------------
+    ax_bot_left.plot([-8, 8, 8, -8, -8], [6.3, 6.3, -4.5, -4.5, 6.3], color=light_green, lw=2)
+    ax_bot_left.text(-8, 6.4, "this post", color=dark_green, ha='left', va='bottom', fontsize=14)
+
+    ax_bot_left.arrow(
+        0,
+        10,
+        0,
+        -2.5,
+        width=0.6,
+        head_length=0.8,
+        length_includes_head=True,
+        facecolor=lighter_blue,
+        edgecolor=lighter_blue,
+    )
+
     plot_vector(ax_bot_left, -6, 7, None, light_grey, "p")
     plot_vector(ax_bot_left, -3, 6, None, light_grey, "")
-    plot_vector(ax_bot_left, 0, 6, None, light_grey, "hidden layers")
+    plot_vector(ax_bot_left, 0, 6, None, light_grey, "\n\nhidden layers")
     plot_vector(ax_bot_left, 3, 6, None, light_grey, "")
     plot_vector(ax_bot_left, 6, 1, None, light_grey, "1")
 
@@ -147,16 +169,59 @@ def fig_lin_vs_nn():
     plot_mapping(ax_bot_left, 3, 6, 6, 1, gradient_from, gradient_to, mapping_name="")
 
     subtitle(ax_bot_left, "Multilayer Perceptron")
-    subsubtitle(ax_bot_left, '(blog post 6 - "AR-MLP" model)')
+    subsubtitle(ax_bot_left, "(blog post 6 - 'MLP-1-step' model)")
 
     # --- 1-step-ahead - NN-n-step ------------------------
-    ax_bot_mid.text(0, 1, "(not part of this post)", ha="center", va="center")
+    ax_bot_mid.plot([-8, 8, 8, -8, -8], [6.3, 6.3, -4.5, -4.5, 6.3], color=light_green, lw=2)
+    ax_bot_mid.text(-8, 6.4, "this post", color=dark_green, ha='left', va='bottom', fontsize=14)
+
+    ax_bot_mid.arrow(
+        0,
+        10,
+        0,
+        -2.5,
+        width=0.6,
+        head_length=0.8,
+        length_includes_head=True,
+        facecolor=lighter_blue,
+        edgecolor=lighter_blue,
+    )
+
+    plot_vector(ax_bot_mid, -6, 7, None, light_grey, "p")
+    plot_vector(ax_bot_mid, -3, 6, None, light_grey, "")
+    plot_vector(ax_bot_mid, 0, 6, None, light_grey, "\n\nhidden layers")
+    plot_vector(ax_bot_mid, 3, 6, None, light_grey, "")
+    plot_vector(ax_bot_mid, 6, 5, None, light_grey, "n")
+
+    ax_bot_mid.text(-3, 0, "f", ha="center", va="center")
+    ax_bot_mid.text(0, 0, "f", ha="center", va="center")
+    ax_bot_mid.text(3, 0, "f", ha="center", va="center")
+
+    plot_mapping(ax_bot_mid, -6, -3, 7, 6, gradient_from, gradient_to, mapping_name="")
+    plot_mapping(ax_bot_mid, -3, 0, 6, 6, gradient_from, gradient_to, mapping_name="")
+    plot_mapping(ax_bot_mid, 0, 3, 6, 6, gradient_from, gradient_to, mapping_name="")
+    plot_mapping(ax_bot_mid, 3, 6, 6, 5, gradient_from, gradient_to, mapping_name="")
+
+    subtitle(ax_bot_mid, "Multi-Layer Perceptron")
+    subsubtitle(ax_bot_mid, "(blog post 6 - 'MLP-n-step' model)")
 
     # --- n-step-ahead - NN-Enc-Dec -----------------------
+    ax_bot_right.arrow(
+        0,
+        10,
+        0,
+        -2.5,
+        width=0.6,
+        head_length=0.8,
+        length_includes_head=True,
+        facecolor=lighter_blue,
+        edgecolor=lighter_blue,
+    )
+
     plot_vector(ax_bot_right, -9, 7, None, light_grey, "p")
     plot_vector(ax_bot_right, -6, 6, None, light_grey, "")
     plot_vector(ax_bot_right, -3, 6, None, light_grey, "")
-    plot_vector(ax_bot_right, 0, 2, None, light_grey, "n_latent")
+    plot_vector(ax_bot_right, 0, 2, None, light_grey, "\n$n_{latent}$")
     plot_vector(ax_bot_right, 3, 4, None, light_grey, "")
     plot_vector(ax_bot_right, 6, 4, None, light_grey, "")
     plot_vector(ax_bot_right, 9, 5, None, light_grey, "n")
@@ -174,7 +239,6 @@ def fig_lin_vs_nn():
     plot_mapping(ax_bot_right, 6, 9, 4, 5, gradient_from, gradient_to, mapping_name="")
 
     subtitle(ax_bot_right, "Encoder-Decoder Topology")
-    subsubtitle(ax_bot_right, '(blog post 6 - "Bottleneck" model)')
 
     # -------------------------------------------------------------------------
     #  Decorate & Save
@@ -238,7 +302,7 @@ def plot_vector(ax: plt.Axes, x_pos: float, n: int, dot_clr: tuple, edge_clr: tu
     if caption_txt is None:
         caption_txt = f"{n}"
 
-    ax.text(x_pos, min(y_pos) - 0.75, caption_txt, va="center", ha="center", fontsize=9)
+    ax.text(x_pos, min(y_pos) - 0.75, caption_txt, va="center", ha="center", fontsize=12, usetex=True)
 
 
 def plot_mapping(
