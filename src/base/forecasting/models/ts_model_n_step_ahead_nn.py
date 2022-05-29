@@ -34,7 +34,7 @@ class TimeSeriesModelMultiStepNeural(TimeSeriesModelMultiStepRegression):
         signal_name: str,
         p: int,
         n: int,
-        lr_max_method: str = "minimum",  # "valley", "minimum", "aggressive"
+        lr_max_method: str = "minimum",  # "valley", "intermediate", "minimum", "aggressive"
         n_epochs: int = 500,
         wd: float = 1e-2,
         activation: str = "elu",  # one of "elu", "relu", "selu"
@@ -140,10 +140,14 @@ class TimeSeriesModelMultiStepNeural(TimeSeriesModelMultiStepRegression):
             else:
                 raise NotImplementedError(f"lr_max_method='{self.lr_max_method}' not implemented.")
 
+            print(f"  lr_max: {lr_max:.3e}  [{self.lr_max_method.upper()}]")
+
         except:
 
             print("------====== lr_find failed --> falling back to lr_max=1e-3 ======------")
             lr_max = 1e-3
+
+            print(f"lr_max: {lr_max:.3e}  [{self.lr_max_method.upper()}; fallback]")
 
         # add tqdm callback
         add_tqdm_callback(learner)
