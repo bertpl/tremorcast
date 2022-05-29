@@ -62,6 +62,7 @@ class TimeSeriesModelMultiStepRegression(TimeSeriesForecastModelAutoScaled):
                         SYNTAX 2:  list of dicts mapping param_name -> value
                     'loss': loss function to be used to evaluate model performance
                               should be a callable  f(y_pred, y_actual) -> float
+                    'selection_method': ParamSelectionMethod     (default = BALANCED)
         """
         self.p = p
         self.n = n

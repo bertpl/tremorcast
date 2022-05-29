@@ -75,6 +75,7 @@ def param_grid_dict_to_list(param_grid: dict) -> List[dict]:
 class ParamSelectionMethod(Enum):
     OPTIMAL = 1  # look at lowest mean validation score
     BALANCED = 2  # choose the least complex model that is within 1 sigma of optimal validation score
+    DEFENSIVE = 3  # look at the lowest value of (mean + 1*std) validation score
 
 
 def select_params(cv_results: list, method: ParamSelectionMethod) -> dict:
@@ -125,3 +126,11 @@ def select_params(cv_results: list, method: ParamSelectionMethod) -> dict:
                 selected_result = result
 
         return selected_result
+
+    elif method == ParamSelectionMethod.DEFENSIVE:
+
+        def selection_criterion(cv_result_dict: dict) -> float:
+            return cv_result_dict["validation_losses"]["mean"] + cv_result_dict["validation_losses"]["std"]
+
+        lowest_val_loss = min([selection_criterion(result) for result in cv_results])
+        return next(filter(lambda result: selection_criterion(result) == lowest_val_loss, cv_results))
