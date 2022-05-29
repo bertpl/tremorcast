@@ -139,7 +139,7 @@ def fig_lin_vs_nn():
 
     # --- 1-step-ahead - NN-AR ----------------------------
     ax_bot_left.plot([-8, 8, 8, -8, -8], [6.3, 6.3, -4.5, -4.5, 6.3], color=light_green, lw=2)
-    ax_bot_left.text(-8, 6.4, "this post", color=dark_green, ha='left', va='bottom', fontsize=14)
+    ax_bot_left.text(-8, 6.4, "this post", color=dark_green, ha="left", va="bottom", fontsize=14)
 
     ax_bot_left.arrow(
         0,
@@ -173,7 +173,7 @@ def fig_lin_vs_nn():
 
     # --- 1-step-ahead - NN-n-step ------------------------
     ax_bot_mid.plot([-8, 8, 8, -8, -8], [6.3, 6.3, -4.5, -4.5, 6.3], color=light_green, lw=2)
-    ax_bot_mid.text(-8, 6.4, "this post", color=dark_green, ha='left', va='bottom', fontsize=14)
+    ax_bot_mid.text(-8, 6.4, "this post", color=dark_green, ha="left", va="bottom", fontsize=14)
 
     ax_bot_mid.arrow(
         0,
