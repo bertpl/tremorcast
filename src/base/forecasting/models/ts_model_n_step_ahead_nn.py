@@ -140,17 +140,21 @@ class TimeSeriesModelMultiStepNeural(TimeSeriesModelMultiStepRegression):
             else:
                 raise NotImplementedError(f"lr_max_method='{self.lr_max_method}' not implemented.")
 
-            print(f"  lr_max: {lr_max:.3e}  [{self.lr_max_method.upper()}]")
+            if self.show_progress:
+                print(f"  lr_max: {lr_max:.3e}  [{self.lr_max_method.upper()}]")
 
-        except:
+        except Exception as e:
+
+            print(e)
 
             print("------====== lr_find failed --> falling back to lr_max=1e-3 ======------")
             lr_max = 1e-3
 
-            print(f"lr_max: {lr_max:.3e}  [{self.lr_max_method.upper()}; fallback]")
+            if self.show_progress:
+                print(f"lr_max: {lr_max:.3e}  [{self.lr_max_method.upper()}; fallback]")
 
         # add tqdm callback
-        add_tqdm_callback(learner)
+        add_tqdm_callback(learner, enabled=self.show_progress)
         learner.fit_one_cycle(self.n_epochs, lr_max=lr_max)
         remove_tqdm_callback(learner)
 

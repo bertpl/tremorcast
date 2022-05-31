@@ -2,6 +2,7 @@ import itertools
 import math
 import random
 from abc import abstractmethod
+from multiprocessing import Pool
 from typing import Any, Dict, List, Tuple, Union
 
 import numpy as np
@@ -55,6 +56,7 @@ class TimeSeriesModelMultiStepRegression(TimeSeriesForecastModelAutoScaled):
                                      could still contain useful data for some sub-models.
         :param cv: (dict, optional): dictionary with cross-validation settings if CV is desired.
                     'n_splits': (int, default=10) number of splits in k-fold cross-validation
+                    'n_processes: (int, default=1) number of parallel processes to use
                     'randomize': (bool, default=True) if True, data is randomized before splitting in train & val. sets
                     'randomize_runs': (bool, default=False) if True, training runs are executed randomly, to improve ETA estimates
                     'param_grid': definition of parameter grid.
@@ -64,6 +66,7 @@ class TimeSeriesModelMultiStepRegression(TimeSeriesForecastModelAutoScaled):
                               should be a callable  f(y_pred, y_actual) -> float
                     'selection_method': ParamSelectionMethod     (default = BALANCED)
         """
+        self.show_progress = True
         self.p = p
         self.n = n
         self._avoid_training_nans = avoid_training_nans
@@ -91,10 +94,10 @@ class TimeSeriesModelMultiStepRegression(TimeSeriesForecastModelAutoScaled):
         self._cross_validation(scaled_training_data)
 
         # --- fit model on tabulated dataset --------------
-        x, y = self.__build_tabulated_data(scaled_training_data)
+        x, y = self._build_tabulated_data(scaled_training_data)
         self._fit_tabulated(x, y)
 
-    def __build_tabulated_data(self, scaled_training_data: pd.DataFrame) -> Tuple[np.ndarray, np.ndarray]:
+    def _build_tabulated_data(self, scaled_training_data: pd.DataFrame) -> Tuple[np.ndarray, np.ndarray]:
 
         # --- convert to tabular data ---------------------
         ts = scaled_training_data[self.signal_name].to_numpy()
@@ -151,7 +154,7 @@ class TimeSeriesModelMultiStepRegression(TimeSeriesForecastModelAutoScaled):
         randomize = self.cv_settings["randomize"]
         randomize_runs = self.cv_settings["randomize_runs"]
         loss_function = self.cv_settings["loss"]
-        selection_method = self.cv_settings.get("selection_method", ParamSelectionMethod.BALANCED)
+        n_processes = self.cv_settings["n_processes"]
 
         # --- cross-validation loop -----------------------
         timer = ProgressTimer(total=n_param_sets * n_splits)
@@ -166,35 +169,80 @@ class TimeSeriesModelMultiStepRegression(TimeSeriesForecastModelAutoScaled):
         else:
             cv_scope = [(i_param_set, i_split) for i_split in range(n_splits) for i_param_set in range(n_param_sets)]
 
-        for i_run, (i_param_set, i_split) in enumerate(cv_scope):  # type int, int
+        if n_processes == 1:
+            # --- SINGLE PROCESS ---
 
-            # display progress
-            print(
-                f"Cross-Validation: training run {i_run+1}/{len(cv_scope)}:"
-                f" param set {i_param_set+1}/{self._cv_n_param_sets()}, "
-                f"cv-split {i_split+1}/{n_splits}.  [ETA={timer.eta_str()} --> {timer.estimated_end_time_str()}]"
-            )
+            for i_run, (i_param_set, i_split) in enumerate(cv_scope):  # type int, int
 
-            # set parameter values
-            self._cv_activate_param_set(i_param_set)
+                # display progress
+                print(
+                    f"Cross-Validation: training run {i_run+1}/{len(cv_scope)}:"
+                    f" param set {i_param_set+1}/{self._cv_n_param_sets()}, "
+                    f"cv-split {i_split+1}/{n_splits}.  [ETA={timer.eta_str()} --> {timer.estimated_end_time_str()}]"
+                )
 
-            # convert to tabulated data & split in (training_data, validation_data)
-            x, y = self.__build_tabulated_data(scaled_training_data)
-            x_train, x_val = split_cv_data(x, n_splits, i_split, randomize)
-            y_train, y_val = split_cv_data(y, n_splits, i_split, randomize)
+                # set parameter values
+                self._cv_activate_param_set(i_param_set)
 
-            # train
-            self._fit_tabulated(x_train, y_train)
+                # convert to tabulated data & split in (training_data, validation_data)
+                x, y = self._build_tabulated_data(scaled_training_data)
+                x_train, x_val = split_cv_data(x, n_splits, i_split, randomize)
+                y_train, y_val = split_cv_data(y, n_splits, i_split, randomize)
 
-            # evaluate
-            training_loss = loss_function(y_train, self._predict_tabulated(x_train))
-            validation_loss = loss_function(y_val, self._predict_tabulated(x_val))
+                # train
+                self._fit_tabulated(x_train, y_train)
 
-            # store result
-            self._cv_set_result(i_param_set, i_split, training_loss, validation_loss)
+                # evaluate
+                training_loss = loss_function(y_train, self._predict_tabulated(x_train))
+                validation_loss = loss_function(y_val, self._predict_tabulated(x_val))
 
-            # update timer
-            timer.iter_done(1)
+                # store result
+                self._cv_set_result(i_param_set, i_split, training_loss, validation_loss)
+
+                # update timer
+                timer.iter_done(1)
+
+        else:
+            # --- MULTI_PROCESSING ---
+
+            self.show_progress = False
+
+            # yields dicts to be passed to
+            def training_iterable() -> dict:
+                for i_run, (i_param_set, i_split) in enumerate(cv_scope):
+
+                    yield dict(
+                        i_run=i_run,
+                        i_param_set=i_param_set,
+                        i_split=i_split,
+                        model=self,
+                        params=self._cv_get_param_set(i_param_set),
+                        scaled_training_data=scaled_training_data,
+                        randomize=randomize,
+                        n_splits=n_splits,
+                        loss_function=loss_function,
+                    )
+
+            with Pool(processes=n_processes) as pool:
+
+                for i_run, i_param_set, i_split, training_loss, validation_loss in pool.imap_unordered(
+                    cv_train, training_iterable()
+                ):
+
+                    # display progress
+                    print(
+                        f"Cross-Validation: training run {i_run + 1}/{len(cv_scope)}:"
+                        f" param set {i_param_set + 1}/{self._cv_n_param_sets()}, "
+                        f"cv-split {i_split + 1}/{n_splits}.  [ETA={timer.eta_str()} --> {timer.estimated_end_time_str()}]"
+                    )
+
+                    # store result
+                    self._cv_set_result(i_param_set, i_split, training_loss, validation_loss)
+
+                    # update timer
+                    timer.iter_done(1)
+
+            self.show_progress = True
 
         # --- finalize ------------------------------------
         self._cv_finalize_results()
@@ -222,6 +270,7 @@ class TimeSeriesModelMultiStepRegression(TimeSeriesForecastModelAutoScaled):
 
             # --- defaults for optional settings ----------
             self.cv_settings["n_splits"] = self.cv_settings.get("n_splits", 5)
+            self.cv_settings["n_processes"] = self.cv_settings.get("n_processes", 1)
             self.cv_settings["randomize"] = self.cv_settings.get("randomize", True)
             self.cv_settings["randomize_runs"] = self.cv_settings.get("randomize_runs", False)
             self.cv_settings["selection_method"] = self.cv_settings.get(
@@ -385,3 +434,39 @@ def loss_rmse(y_true: np.ndarray, y_pred: np.ndarray) -> float:
 
 def loss_mae(y_true: np.ndarray, y_pred: np.ndarray) -> float:
     return float(np.mean(np.abs(y_true - y_pred).flatten()))
+
+
+# =================================================================================================
+#  Parallel processing entry-point for cross-validation
+# =================================================================================================
+def cv_train(data_dict: dict) -> Tuple[int, int, int, float, float]:
+
+    # extract values from data_dict
+    i_run = data_dict["i_run"]
+    i_split = data_dict["i_split"]
+    i_param_set = data_dict["i_param_set"]
+    model = data_dict["model"]  # type: TimeSeriesModelMultiStepRegression
+    params = data_dict["params"]
+    scaled_training_data = data_dict["scaled_training_data"]
+    loss_function = data_dict["loss_function"]
+    randomize = data_dict["randomize"]
+    n_splits = data_dict["n_splits"]
+
+    # set parameters
+    for param_name, value in params.items():
+        model.set_param(param_name, value)
+
+    # create in training & validation sets
+    x, y = model._build_tabulated_data(scaled_training_data)
+    x_train, x_val = split_cv_data(x, n_splits, i_split, randomize)
+    y_train, y_val = split_cv_data(y, n_splits, i_split, randomize)
+
+    # train model
+    model._fit_tabulated(x_train, y_train)
+
+    # evaluate
+    training_loss = loss_function(y_train, model._predict_tabulated(x_train))
+    validation_loss = loss_function(y_val, model._predict_tabulated(x_val))
+
+    # return
+    return i_run, i_param_set, i_split, training_loss, validation_loss
