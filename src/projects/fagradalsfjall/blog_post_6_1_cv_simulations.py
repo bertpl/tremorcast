@@ -84,13 +84,15 @@ def blog_6_cv_1d_sweeps(n: int, do_train: bool = True, do_plot: bool = True, swe
             plot_sweep_result(sweep, n)
 
 
-def blog_6_cv_full(n: int):
+def blog_6_cv_full(n: int, n_processes: int = 4):
 
     # --- load training data set --------------------------
     df_train = get_dataset_train().to_dataframe()  # type: pd.DataFrame
 
     # --- CV model ----------------------------------------
-    cv_model = TimeSeriesModelMultiStepNeuralMLP(signal_name=FORECAST_SIGNAL_NAME, n=0, p=0, cv=get_cv_settings_full(n))
+    cv_model = TimeSeriesModelMultiStepNeuralMLP(
+        signal_name=FORECAST_SIGNAL_NAME, n=0, p=0, cv=get_cv_settings_full(n, n_processes)
+    )
 
     # --- cross-validation --------------------------------
     print("-" * 120)
