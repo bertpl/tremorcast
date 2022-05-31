@@ -23,7 +23,7 @@ class ProgressCallbackTqdm(Callback):
         self.tqdm.close()
 
 
-def add_tqdm_callback(learner):
+def add_tqdm_callback(learner, enabled=True):
 
     try:
         if hasattr(learner, "progress"):
@@ -34,7 +34,8 @@ def add_tqdm_callback(learner):
         print(e)
         pass
 
-    learner.add_cb(ProgressCallbackTqdm)
+    if enabled:
+        learner.add_cb(ProgressCallbackTqdm)
 
 
 def remove_tqdm_callback(learner):

@@ -9,12 +9,19 @@ import numpy as np
 import pandas as pd
 
 from src.base.forecasting.evaluation.cross_validation import ParamSelectionMethod
-from src.base.forecasting.models import TimeSeriesModelMultiStepNeuralMLP, loss_mae
+from src.base.forecasting.models import (
+    TimeSeriesModelMultiStepNeuralMLP,
+    TimeSeriesModelMultiStepOLS,
+    TimeSeriesModelMultiStepPLS,
+    TimeSeriesModelNaiveConstant,
+    TimeSeriesModelNaiveMean,
+    loss_mae,
+)
 from src.projects.fagradalsfjall.evaluate_models import get_dataset_train
 from src.tools.matplotlib import plot_style_matplotlib_default
 
 from ._project_settings import FORECAST_SIGNAL_NAME
-from .evaluate_models.evaluate_forecast_models import _get_output_path
+from .evaluate_models.evaluate_forecast_models import _get_output_path, evaluate_forecast_models
 
 
 # =================================================================================================
@@ -39,7 +46,7 @@ class Sweep(Enum):
 
 
 # =================================================================================================
-#  Main function
+#  Main functions
 # =================================================================================================
 def blog_6_cv_1d_sweeps(n: int, do_train: bool = True, do_plot: bool = True, sweeps: List[Sweep] = None):
 
@@ -77,6 +84,83 @@ def blog_6_cv_1d_sweeps(n: int, do_train: bool = True, do_plot: bool = True, swe
             plot_sweep_result(sweep, n)
 
 
+def blog_6_cv_full(n: int):
+
+    # --- load training data set --------------------------
+    df_train = get_dataset_train().to_dataframe()  # type: pd.DataFrame
+
+    # --- CV model ----------------------------------------
+    cv_model = TimeSeriesModelMultiStepNeuralMLP(signal_name=FORECAST_SIGNAL_NAME, n=0, p=0, cv=get_cv_settings_full(n))
+
+    # --- cross-validation --------------------------------
+    print("-" * 120)
+    print(f"CV GRID SEARCH --- N: {n}")
+    print("-" * 120)
+    print()
+
+    cv_model.fit(df_train)
+
+    # --- save --------------------------------------------
+    model_filename = get_filename_full_cv_model(n)
+    with open(model_filename, "wb") as f:
+        pickle.dump(cv_model, f)
+
+
+def blog_6_cv_final_comparisons():
+
+    # --- simulate ----------------------------------------
+    naive_models = {
+        "naive-constant": TimeSeriesModelNaiveConstant(FORECAST_SIGNAL_NAME),
+        "naive-mean": TimeSeriesModelNaiveMean(FORECAST_SIGNAL_NAME),
+    }
+
+    earlier_models = {
+        "ar-192": TimeSeriesModelMultiStepOLS(FORECAST_SIGNAL_NAME, p=192, n=1),
+        "n-step-ols-288-288": TimeSeriesModelMultiStepOLS(FORECAST_SIGNAL_NAME, p=288, n=288),
+        "n-step-pls-288-288-7": TimeSeriesModelMultiStepPLS(FORECAST_SIGNAL_NAME, p=288, n=288, rank=7),
+    }
+
+    # --- load models -----------------------------------------
+    selection_method = ParamSelectionMethod.OPTIMAL
+    models = dict()
+    for n in [1, 16]:
+
+        print(f"--- N={n} -------------")
+
+        # load
+        with open(get_filename_full_cv_model(n=n), "rb") as f:
+            model = pickle.load(f)  # type: TimeSeriesModelMultiStepNeuralMLP
+
+        # select params & set
+        params = model.cv_results["best_params_by_method"][selection_method]["params"]
+        for param_name, value in params.items():
+            model.set_param(param_name, value)
+            print(f"{param_name}: {value} ")
+        print()
+
+        # remove cv settings --> avoid redoing CV all over again
+        model.cv_settings = None
+
+        # keep track in dict
+        models[n] = model
+
+    nn_models = {
+        "1-step-mlp": models[1],
+        "16-step-mlp": models[16],
+    }
+
+    # --- simulate ----------------------------------------
+    evaluate_forecast_models(
+        models=naive_models | earlier_models | nn_models,
+        retrain=False,
+        stride=1,
+        results_sub_folder="post_6_nn",
+        simulate=True,
+        evaluate=True,
+        set_name=f"final_result",
+    )
+
+
 # =================================================================================================
 #  Helpers - CV Settings
 # =================================================================================================
@@ -91,12 +175,17 @@ def _get_cv_settings_1d(sweep: Sweep, n: int) -> Tuple[dict, str, bool, str]:
     # --- nominal settings --------------------------------
 
     # larger n seems to benefit from larger n_epochs without risk of overfitting or instability
-    nominal_lr_max_method = "minimum"
-    nominal_n_epochs = 50
+    if n == 1:
+        nominal_lr_max_method = "aggressive"
+        nominal_n_epochs = 100
+    else:
+        nominal_lr_max_method = "minimum"
+        nominal_n_epochs = 50
 
     # other settings
     cv_settings = dict(
         n_splits=5,
+        n_processes=8,
         randomize=False,
         randomize_runs=True,
         loss=loss_mae,
@@ -180,24 +269,23 @@ def _get_cv_settings_1d(sweep: Sweep, n: int) -> Tuple[dict, str, bool, str]:
 
 def get_cv_settings_full(n: int) -> dict:
 
-    cv_settings = dict(
+    return dict(
         n_splits=5,
+        n_processes=6,
         randomize=False,
         randomize_runs=True,
         loss=loss_mae,
         selection_method=ParamSelectionMethod.DEFENSIVE,
         param_grid={
-            "n_hidden_layers": [1, 3],
+            "n_hidden_layers": [1, 2, 3],
             "layer_width": [100],
             "n": [n],
             "p": [4, 8, 16, 32],
-            "wd": [0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1.0],
-            "n_epochs": [50, 100, 200],
-            "lr_max_method": ["minimum"],
+            "wd": [0.001, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1.0, 2.0],
+            "n_epochs": [10, 20, 50, 100, 200],
+            "lr_max_method": ["minimum", "aggressive"],
         },
     )
-
-    return cv_settings
 
 
 # =================================================================================================
@@ -215,8 +303,8 @@ def get_filename_1d_sweep_model(sweep: Sweep, n: int) -> str:
     return get_filename_1d_sweep_base(sweep, n) + ".pkl"
 
 
-# def get_filename_full_cv(n: int) -> str:
-#     return os.path.join(_get_output_path("post_6_nn"), f"1d_sweep_{n}_step_{sweep.lower_name()}")
+def get_filename_full_cv_model(n: int) -> str:
+    return os.path.join(_get_output_path("post_6_nn"), f"cv_grid_search_{n}_step.pkl")
 
 
 # =================================================================================================
