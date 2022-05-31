@@ -267,11 +267,11 @@ def _get_cv_settings_1d(sweep: Sweep, n: int) -> Tuple[dict, str, bool, str]:
     return cv_settings, param_name, log_x_scale, sub_title
 
 
-def get_cv_settings_full(n: int) -> dict:
+def get_cv_settings_full(n: int, n_processes: int = 4) -> dict:
 
     return dict(
         n_splits=5,
-        n_processes=6,
+        n_processes=n_processes,
         randomize=False,
         randomize_runs=True,
         loss=loss_mae,
