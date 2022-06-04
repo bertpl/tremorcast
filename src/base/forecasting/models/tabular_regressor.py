@@ -246,9 +246,9 @@ class TabularCrossValidation:
         y: np.ndarray,
         param_grid: Union[dict, List[dict]],
         score_metric: ScoreMetric,
-        n_jobs: int = 1,
         n_splits: int = 5,
         shuffle_data: bool = False,
+        n_jobs: int = 1,
     ):
         """Use the sklearn class GridSearchCV to perform cross-validated grid-search over parameters."""
 
@@ -314,6 +314,16 @@ class TabularCrossValidation:
             )
 
         self.results.update_best_result()
+
+    # -------------------------------------------------------------------------
+    #  Parameters
+    # -------------------------------------------------------------------------
+    def get_param_names(self):
+        """Get parameter names that can be tuned using cross-validation."""
+        param_names = sorted(self.regressor.get_params().keys())
+        if CV_METADATA_PARAM in param_names:
+            param_names.remove(CV_METADATA_PARAM)
+        return param_names
 
     # -------------------------------------------------------------------------
     #  Progress reporting
