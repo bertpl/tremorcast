@@ -35,6 +35,7 @@ class TabularRegressorMLP(TabularRegressor):
         n_epochs: int = 100,
         wd: float = 1e-2,
         activation: str = "elu",  # one of "elu", "relu", "selu"
+        input_selection: List[int] = None,
         **kwargs,
     ):
 
@@ -47,6 +48,16 @@ class TabularRegressorMLP(TabularRegressor):
         self.n_epochs = n_epochs
         self.wd = wd
         self.activation = activation
+        self.input_selection = input_selection  # list if indexes of selected inputs
+
+    def get_selected_input_count(self) -> int:
+        return len(self.get_selected_inputs())
+
+    def get_selected_inputs(self) -> List[int]:
+        return self.input_selection or list(range(self.n_inputs))
+
+    def select_inputs(self, x: np.ndarray) -> np.ndarray:
+        return x[:, self.get_selected_inputs()].copy()
 
     # -------------------------------------------------------------------------
     #  Fit / Predict
@@ -59,9 +70,12 @@ class TabularRegressorMLP(TabularRegressor):
 
         # --- prepare data --------------------------------
 
+        # input selection
+        x_subset = self.select_inputs(x)
+
         # convert data to df
         self.set_feature_and_target_names()
-        df = pd.DataFrame(data=np.concatenate([x, y], axis=1), columns=self._feature_names + self._target_names)
+        df = pd.DataFrame(data=np.concatenate([x_subset, y], axis=1), columns=self._feature_names + self._target_names)
 
         # construct DataLoader
         data = TabularDataLoaders.from_df(df, cont_names=self._feature_names, y_names=self._target_names, valid_idx=[0])
@@ -89,10 +103,13 @@ class TabularRegressorMLP(TabularRegressor):
 
     def predict(self, x: np.ndarray) -> np.ndarray:
 
+        # input selection
+        x_subset = self.select_inputs(x)
+
         # construct DataLoader with features
         #  (see: https://docs.fast.ai/tutorial.tabular.html)
         self.set_feature_and_target_names()
-        df_features = pd.DataFrame(data=x, columns=self._feature_names)
+        df_features = pd.DataFrame(data=x_subset, columns=self._feature_names)
         dl = self._nn.dls.test_dl(df_features)
 
         # generate predictions
@@ -105,7 +122,7 @@ class TabularRegressorMLP(TabularRegressor):
     #  Internal
     # -------------------------------------------------------------------------
     def set_feature_and_target_names(self):
-        self._feature_names = [f"x{i}" for i in range(self.n_inputs)]
+        self._feature_names = [f"x{i}" for i in self.get_selected_inputs()]
         self._target_names = [f"y{i}" for i in range(self.n_outputs)]
 
     def _get_layer_sizes(self) -> List[int]:
