@@ -37,7 +37,7 @@ class TimeSeriesModelMultiStepNeuralMLP(TimeSeriesModelMultiStepNeural):
         cv: dict = None,
     ):
         super().__init__(
-            model_type="n-step-nn-bottleneck",
+            model_type="n-step-nn",
             signal_name=signal_name,
             p=p,
             n=n,
