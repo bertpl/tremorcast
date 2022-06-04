@@ -139,8 +139,8 @@ class TimeSeriesForecastModelAutoScaled(TimeSeriesForecastModel):
         """
 
         # --- learn and apply scaling --------------------
-        self._scaling = self._extract_scaling(training_data)
-        scaled_training_data = self._scale_df(training_data)
+        self.fit_scaling(training_data)
+        scaled_training_data = self.scale_df(training_data)
 
         # --- fit -----------------------------------------
         self._fit(scaled_training_data)
@@ -148,23 +148,28 @@ class TimeSeriesForecastModelAutoScaled(TimeSeriesForecastModel):
     def predict(self, history: pd.DataFrame, n_samples: int) -> np.ndarray:
 
         # --- apply scaling -------------------------------
-        scaled_history = self._scale_df(history)
+        scaled_history = self.scale_df(history)
 
         # --- predict -------------------------------------
         forecast = self._predict(scaled_history, n_samples)
 
         # --- return unscaled forecast --------------------
-        return self._unscale_np(forecast, self.signal_name)
+        return self.unscale_np(forecast, self.signal_name)
 
     # -------------------------------------------------------------------------
-    #  INTERNAL
+    #  Scaling
     # -------------------------------------------------------------------------
-    @staticmethod
-    def _extract_scaling(data: pd.DataFrame) -> Dict[str, Tuple[float, float]]:
-        """Return dictionary mapping col_names -> (mean, std)"""
-        return {signal_name: (data[signal_name].mean(), data[signal_name].std()) for signal_name in data.columns}
+    def fit_scaling(self, data: pd.DataFrame):
+        self._scaling = {
+            signal_name: (data[signal_name].mean(), data[signal_name].std()) for signal_name in data.columns
+        }
 
-    def _scale_df(self, data: pd.DataFrame) -> pd.DataFrame:
+    # @staticmethod
+    # def _extract_scaling(data: pd.DataFrame) -> Dict[str, Tuple[float, float]]:
+    #     """Return dictionary mapping col_names -> (mean, std)"""
+    #     return {signal_name: (data[signal_name].mean(), data[signal_name].std()) for signal_name in data.columns}
+
+    def scale_df(self, data: pd.DataFrame) -> pd.DataFrame:
         """Apply scaling to those columns for which we can find a scaling in this objects scaling dict"""
         scaled_data = data.copy()
 
@@ -175,7 +180,7 @@ class TimeSeriesForecastModelAutoScaled(TimeSeriesForecastModel):
 
         return scaled_data
 
-    def _unscale_np(self, data: np.ndarray, signal_name: str) -> np.ndarray:
+    def unscale_np(self, data: np.ndarray, signal_name: str) -> np.ndarray:
         mean, std = self._scaling.get(signal_name, (0.0, 1.0))
         return mean + std * data
 
