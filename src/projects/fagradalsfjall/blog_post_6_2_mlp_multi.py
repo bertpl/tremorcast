@@ -15,7 +15,7 @@ from .evaluate_models.evaluate_forecast_models import _get_output_path, evaluate
 # =================================================================================================
 #  Main functions
 # =================================================================================================
-def blog_6_2_mlp_multi_sub_model_cv(n: int):
+def blog_6_2_mlp_multi_sub_model_cv(n: int, n_models: int):
 
     # --- load training data set --------------------------
     df_train = get_dataset_train().to_dataframe()  # type: pd.DataFrame
@@ -32,23 +32,19 @@ def blog_6_2_mlp_multi_sub_model_cv(n: int):
     )
 
     # --- param_grid --------------------------------------
-    param_grid = dict(
-        n_epochs=[20, 50, 100], wd=[0.001, 0.01, 0.1, 1, 10], lr_max=["minimum", "aggressive"]
-    )
+    param_grid = dict(n_epochs=[20, 50, 100], wd=[0.001, 0.01, 0.1, 1, 10], lr_max=["minimum", "aggressive"])
 
     # --- perform grid search -----------------------------
-    n_models_for_cv = min(8, n)
-
     model.sub_cv.grid_search(
         training_data=df_train,
         param_grid=param_grid,
         score_metric=ScoreMetric.MAE,
         n_splits=5,
-        i_sub_models=exp_spaced_indices_fixed_max(n=n_models_for_cv, max_index=n - 1),
+        i_sub_models=exp_spaced_indices_fixed_max(n=n_models, max_index=n - 1),
     )
 
     # --- save_results ------------------------------------
-    model_file_name = get_filename_multi_mlp_sub_cv_model(n, n_models_for_cv)
+    model_file_name = get_filename_multi_mlp_sub_cv_model(n, n_models)
     with open(model_file_name, "wb") as f:
         pickle.dump(model, f)
 
