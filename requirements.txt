@@ -16,6 +16,7 @@ opencv-python >= 4.5
 
 # --- plotting --------------
 matplotlib >= 3.5
+plotly >= 5.5.0
 
 # --- machine learning ------
 --find-links https://download.pytorch.org/whl/torch_stable.html
