@@ -154,7 +154,7 @@ class TimeSeriesRegressionCrossValidation:
         param_grid: Union[Dict, List[Dict]],
         score_metric: ScoreMetric,
         n_splits: int = 5,
-        n_jobs: int = 1,
+        n_jobs: int = -1,
     ):
 
         # --- learn scaling -------------------------------

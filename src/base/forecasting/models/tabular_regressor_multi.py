@@ -15,31 +15,31 @@ class TabularRegressorMulti(TabularRegressor):
     # -------------------------------------------------------------------------
     #  Constructor
     # -------------------------------------------------------------------------
-    def __init__(self, name: str, regressors: List[TabularRegressor], **kwargs):
+    def __init__(self, name: str, sub_models: List[TabularRegressor], **kwargs):
 
         # --- error checking ------------------------------
-        assert len(regressors) > 0, "should have at least 1 regressor"
-        assert len({r.n_inputs for r in regressors}) == 1, "n_input cannot differ between regressors"
-        assert len({type(r) for r in regressors}) == 1, "regressors should all be of the same type"
+        assert len(sub_models) > 0, "should have at least 1 regressor"
+        assert len({r.n_inputs for r in sub_models}) == 1, "n_input cannot differ between regressors"
+        assert len({type(r) for r in sub_models}) == 1, "regressors should all be of the same type"
 
         # --- determine n_inputs, n_outputs ---------------
-        n_inputs = regressors[0].n_inputs
-        n_outputs = sum([r.n_outputs for r in regressors])
+        n_inputs = sub_models[0].n_inputs
+        n_outputs = sum([m.n_outputs for m in sub_models])
 
         # --- superclass constructor ----------------------
         super().__init__(name, n_inputs, n_outputs, **kwargs)
 
         # --- sub-model mgmt ------------------------------
-        self.regressors = regressors  # type: List[TabularRegressor]
+        self.sub_models = sub_models  # type: List[TabularRegressor]
         self.output_mapping = [
-            list(np.arange(i_ref - r.n_outputs, i_ref))
-            for i_ref, r in zip(np.cumsum([r.n_outputs for r in regressors]), regressors)
+            list(np.arange(i_ref - m.n_outputs, i_ref))
+            for i_ref, m in zip(np.cumsum([r.n_outputs for r in sub_models]), sub_models)
         ]  # type: List[List[int]]
         self._sub_cv = SubModelCrossValidation(self)
 
     @property
     def n_sub_models(self) -> int:
-        return len(self.regressors)
+        return len(self.sub_models)
 
     # -------------------------------------------------------------------------
     #  Fit / Predict
@@ -50,7 +50,7 @@ class TabularRegressorMulti(TabularRegressor):
         self._pre_fit_hook()
 
         # --- fit -----------------------------------------
-        for i, regressor in enumerate(self.regressors):
+        for i, regressor in enumerate(self.sub_models):
             # just fit each regressor with the correct subset of outputs
             regressor.fit(x, y[:, self.output_mapping[i]])
 
@@ -59,7 +59,7 @@ class TabularRegressorMulti(TabularRegressor):
 
     def predict(self, x: np.ndarray) -> np.ndarray:
         # perform predictions with each regressor and concatenate outputs
-        return np.concatenate([r.predict(x) for r in self.regressors], axis=1)
+        return np.concatenate([r.predict(x) for r in self.sub_models], axis=1)
 
     # -------------------------------------------------------------------------
     #  Cross-Validation
@@ -73,7 +73,7 @@ class TabularRegressorMulti(TabularRegressor):
     # -------------------------------------------------------------------------
     def set_sub_params(self, **kwargs):
         """Sets the provided keywords arguments as parameters in each sub-model"""
-        for r in self.regressors:
+        for r in self.sub_models:
             r.set_params(**kwargs)
 
     # -------------------------------------------------------------------------
@@ -122,12 +122,12 @@ class SubModelCrossValidation:
         for i_sub_model in i_sub_models:
 
             # prep regressor & data
-            regressor = self.regressor.regressors[i_sub_model]
+            sub_model = self.regressor.sub_models[i_sub_model]
             y_sub = y[:, self.regressor.output_mapping[i_sub_model]]
 
             # run actual grid search
             print(f"=== PERFORMING GRID SEARCH CV FOR SUBMODEL {i_sub_model} ===")
-            regressor.cv.grid_search(x, y_sub, param_grid, score_metric, n_splits, shuffle_data, n_jobs)
+            sub_model.cv.grid_search(x, y_sub, param_grid, score_metric, n_splits, shuffle_data, n_jobs)
 
         # --- collect results -----------------------------
-        self.results = {i_sub_model: self.regressor.regressors[i_sub_model].cv.results for i_sub_model in i_sub_models}
+        self.results = {i_sub_model: self.regressor.sub_models[i_sub_model].cv.results for i_sub_model in i_sub_models}

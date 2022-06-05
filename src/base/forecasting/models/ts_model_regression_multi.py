@@ -47,7 +47,7 @@ class SubModelCrossValidation:
     # -------------------------------------------------------------------------
     def get_param_names(self) -> List[str]:
         """Parameters that can be tuned using cross-validation."""
-        return self.ts_model.regressor.regressors[0].cv.get_param_names()
+        return self.ts_model.regressor.sub_models[0].cv.get_param_names()
 
     # -------------------------------------------------------------------------
     #  Grid Search
@@ -58,7 +58,7 @@ class SubModelCrossValidation:
         param_grid: Union[Dict, List[Dict]],
         score_metric: ScoreMetric,
         n_splits: int = 5,
-        n_jobs: int = 1,
+        n_jobs: int = -1,
         i_sub_models: List[int] = None,
     ):
 
