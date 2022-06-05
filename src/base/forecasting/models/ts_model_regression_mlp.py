@@ -23,7 +23,9 @@ class TimeSeriesModelRegressionMLP(TimeSeriesModelRegression):
         n_epochs: int = 100,
         wd: float = 1e-2,
         activation: str = "elu",  # one of "elu", "relu", "selu"
-        input_selection: List[int] = None,
+        input_selection_indices: List[int] = None,
+        input_selection_first_n: int = None,
+        input_selection_last_n: int = None,
     ):
 
         mlp = TabularRegressorMLP(
@@ -35,7 +37,9 @@ class TimeSeriesModelRegressionMLP(TimeSeriesModelRegression):
             n_epochs=n_epochs,
             wd=wd,
             activation=activation,
-            input_selection=input_selection,
+            input_selection_indices=input_selection_indices,
+            input_selection_first_n=input_selection_first_n,
+            input_selection_last_n=input_selection_last_n,
         )
 
         super().__init__(signal_name, mlp, avoid_training_nans=True)

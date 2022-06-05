@@ -35,7 +35,9 @@ class TabularRegressorMLP(TabularRegressor):
         n_epochs: int = 100,
         wd: float = 1e-2,
         activation: str = "elu",  # one of "elu", "relu", "selu"
-        input_selection: List[int] = None,
+        input_selection_indices: List[int] = None,
+        input_selection_first_n: int = None,
+        input_selection_last_n: int = None,
         **kwargs,
     ):
 
@@ -48,13 +50,22 @@ class TabularRegressorMLP(TabularRegressor):
         self.n_epochs = n_epochs
         self.wd = wd
         self.activation = activation
-        self.input_selection = input_selection  # list if indexes of selected inputs
+
+        # input selection
+        self.input_selection_indices = input_selection_indices  # list if indexes of selected inputs
+        self.input_selection_first_n = input_selection_first_n
+        self.input_selection_last_n = input_selection_last_n
 
     def get_selected_input_count(self) -> int:
         return len(self.get_selected_inputs())
 
     def get_selected_inputs(self) -> List[int]:
-        return self.input_selection or list(range(self.n_inputs))
+        selected_indices = self.input_selection_indices or list(range(self.n_inputs))
+        if self.input_selection_last_n is not None:
+            selected_indices = [idx for idx in selected_indices if idx >= (self.n_inputs - self.input_selection_last_n)]
+        if self.input_selection_first_n is not None:
+            selected_indices = [idx for idx in selected_indices if idx < self.input_selection_first_n]
+        return selected_indices
 
     def select_inputs(self, x: np.ndarray) -> np.ndarray:
         return x[:, self.get_selected_inputs()].copy()
@@ -83,7 +94,7 @@ class TabularRegressorMLP(TabularRegressor):
         # --- init neural network -------------------------
         model = TabularModel(
             emb_szs=[],
-            n_cont=self.n_inputs,
+            n_cont=self.get_selected_input_count(),
             out_sz=self.n_outputs,
             layers=self._get_layer_sizes(),
             act_cls=self._get_activation(),
