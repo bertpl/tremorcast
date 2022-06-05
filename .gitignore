@@ -136,4 +136,4 @@ dmypy.json
 .pyre/
 
 # joblib temp file
-models
+/models
