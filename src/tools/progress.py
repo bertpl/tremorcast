@@ -1,11 +1,12 @@
 import datetime
 import sys
 from math import nan
-from typing import Tuple
 
 from fastai.callback.core import Callback
 from fastai.imports import noop
 from tqdm import tqdm
+
+from .datetime import format_datetime, format_timedelta
 
 
 # =================================================================================================
@@ -49,7 +50,7 @@ def remove_tqdm_callback(learner):
 #  Generic timer / progress estimator
 # =================================================================================================
 class ProgressTimer:
-    def __init__(self, *, total: int, auto_start: bool = True):
+    def __init__(self, *, total: int = 100, auto_start: bool = True):
         self.total = total
         self.progress = None
         self.t_start = None
@@ -96,38 +97,13 @@ class ProgressTimer:
 
     def eta_str(self) -> str:
         if self.eta_available():
-            d, h, m, s = self._split_sec(self.eta_sec())
-            if d + h + m == 0:
-                if s < 10:
-                    return f"{s:.2f}s"
-                else:
-                    return f"{s:.1f}s"
-            elif d + h == 0:
-                return f"{m}m{s:.0f}s"
-            elif d == 0:
-                return f"{h}h{m}m{s:.0f}s"
-            else:
-                return f"{d}d{h}h{m}m{s:.0f}s"
+            return format_timedelta(self.eta_sec())
         else:
             return "???"
 
     def estimated_end_time_str(self) -> str:
         if self.eta_available():
             est_end_time = datetime.datetime.now() + datetime.timedelta(seconds=int(self.eta_sec()))
-            return est_end_time.strftime("%a - %Y-%m-%d - %H:%M:%S")
+            return format_datetime(est_end_time)
         else:
             return "???"
-
-    @staticmethod
-    def _split_sec(sec: float) -> Tuple[int, int, int, float]:
-        """split total seconds in (days_int, hours_int, minutes_int, secs_float)"""
-        d = int(sec // (24 * 60 * 60))
-        sec -= d * 24 * 60 * 60
-
-        h = int(sec // (60 * 60))
-        sec -= h * 60 * 60
-
-        m = int(sec // 60)
-        sec -= m * 60
-
-        return d, h, m, sec
