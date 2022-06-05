@@ -328,7 +328,7 @@ def get_cv_settings_full(n: int) -> Tuple[TimeSeriesModelRegressionMLP, dict, di
 #  Helpers - File Names
 # =================================================================================================
 def get_filename_1d_sweep_base(sweep: Sweep, n: int) -> str:
-    return os.path.join(_get_output_path("post_6_nn"), f"1d_sweep_{n}_step_{sweep.lower_name()}")
+    return os.path.join(_get_output_path("post_6_nn"), f"mlp_single_1d_sweep_{n}_step_{sweep.lower_name()}")
 
 
 def get_filename_1d_sweep_fig(sweep: Sweep, n: int) -> str:
@@ -340,7 +340,7 @@ def get_filename_1d_sweep_model(sweep: Sweep, n: int) -> str:
 
 
 def get_filename_full_cv_model(n: int) -> str:
-    return os.path.join(_get_output_path("post_6_nn"), f"cv_grid_search_{n}_step.pkl")
+    return os.path.join(_get_output_path("post_6_nn"), f"mlp_single_cv_grid_search_{n}_step.pkl")
 
 
 # =================================================================================================
