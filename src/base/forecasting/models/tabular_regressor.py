@@ -212,6 +212,9 @@ class CVResults:
         :return: (param_values, train_metric_mean, train_metric_std, val_metric_mean, val_metric_std)-tuple
         """
 
+        # --- argument handling ---------------------------
+        param_filter = param_filter or dict()
+
         # --- get all parameter values --------------------
         param_values = self.all_param_values()[param_name]
 
@@ -283,7 +286,7 @@ class TabularCrossValidation:
         score_metric: ScoreMetric,
         n_splits: int = 5,
         shuffle_data: bool = False,
-        n_jobs: int = 1,
+        n_jobs: int = -1,
     ):
         """Use the sklearn class GridSearchCV to perform cross-validated grid-search over parameters."""
 
@@ -307,7 +310,7 @@ class TabularCrossValidation:
 
         timer = ProgressTimer()
         grid_search.fit(x, y)  # run actual grid-search
-        print("-"*80)
+        print("-" * 80)
         print(f"Total computation time: {format_timedelta(timer.sec_elapsed())}.")
 
         # --- extract results -----------------------------
