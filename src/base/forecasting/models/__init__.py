@@ -6,4 +6,5 @@ from .ts_model_n_step_ahead_ols import TimeSeriesModelMultiStepOLS
 from .ts_model_n_step_ahead_pls import TimeSeriesModelMultiStepPLS
 from .ts_model_naive_constant import TimeSeriesModelNaiveConstant
 from .ts_model_naive_mean import TimeSeriesModelNaiveMean
+from .ts_model_regression import CVResults, ScoreMetric
 from .ts_model_regression_mlp import TimeSeriesModelRegressionMLP
