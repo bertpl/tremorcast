@@ -56,6 +56,9 @@ class TabularRegressorMLP(TabularRegressor):
         self.input_selection_first_n = input_selection_first_n
         self.input_selection_last_n = input_selection_last_n
 
+        # other
+        self.last_lr_max = None
+
     def get_selected_input_count(self) -> int:
         return len(self.get_selected_inputs())
 
@@ -88,9 +91,24 @@ class TabularRegressorMLP(TabularRegressor):
         df = pd.DataFrame(data=np.concatenate([x_subset, y], axis=1), columns=self._feature_names + self._target_names)
 
         # construct DataLoader
-        data = TabularDataLoaders.from_df(df, cont_names=self._feature_names, y_names=self._target_names, valid_idx=[0])
+        data_loader = TabularDataLoaders.from_df(
+            df, cont_names=self._feature_names, y_names=self._target_names, valid_idx=[0]
+        )
 
-        # --- init neural network -------------------------
+        # --- determine lr_max ----------------------------
+        self._initialize_model(data_loader)
+        lr_max = self._determine_lr_max(self._nn)
+
+        # --- train ---------------------------------------
+        self._learn_one_cycle(self._nn, self.n_epochs, lr_max, self.show_progress)
+        while self._learner_weights_are_nan():
+            print(f"WARNING: training was unstable; reducing lr_max from {lr_max} to {lr_max/10}.")
+            lr_max = lr_max / 10
+            self._initialize_model(data_loader)
+            self._learn_one_cycle(self._nn, self.n_epochs, lr_max, self.show_progress)
+
+    def _initialize_model(self, data_loader):
+        """Initializes self._nn with new TabularLearner with newly initialized weights"""
         model = TabularModel(
             emb_szs=[],
             n_cont=self.get_selected_input_count(),
@@ -99,17 +117,18 @@ class TabularRegressorMLP(TabularRegressor):
             act_cls=self._get_activation(),
         )
 
-        # construct learner
-        learner = TabularLearner(data, model, metrics=rmse, wd=self.wd)
-        self._nn = learner
+        self._nn = TabularLearner(data_loader, model, metrics=rmse, wd=self.wd)
 
-        # --- determine lr_max ----------------------------
-        lr_max = self._determine_lr_max(learner)
-
-        # --- train ---------------------------------------
-        add_tqdm_callback(learner, enabled=self.show_progress)
-        learner.fit_one_cycle(self.n_epochs, lr_max=lr_max)
+    def _learn_one_cycle(self, learner: TabularLearner, n_epochs: int, lr_max: float, show_progress: bool):
+        add_tqdm_callback(learner, enabled=show_progress)
+        learner.fit_one_cycle(n_epochs, lr_max=lr_max)
         remove_tqdm_callback(learner)
+
+        self.last_lr_max = lr_max
+
+    def _learner_weights_are_nan(self) -> bool:
+        all_params = [p.T.detach().numpy() for p in self._nn.parameters()]
+        return any([any(np.isnan(arr.flatten())) or any(np.isinf(arr.flatten())) for arr in all_params])
 
     def predict(self, x: np.ndarray) -> np.ndarray:
 
@@ -124,6 +143,7 @@ class TabularRegressorMLP(TabularRegressor):
 
         # generate predictions
         pred, _ = self._nn.get_preds(dl=dl)
+        pred = np.array(pred)
 
         # return as numpy array
         return np.array(pred)
@@ -151,9 +171,10 @@ class TabularRegressorMLP(TabularRegressor):
 
     def _determine_lr_max(self, learner: TabularLearner) -> float:
 
+        # --- determine lr_max ----------------------------
         if isinstance(self.lr_max, (float, int)):
             # FIXED lr_max
-            return float(self.lr_max)
+            lr_max = float(self.lr_max)
 
         elif isinstance(self.lr_max, str):
             # use lr_find
@@ -173,9 +194,6 @@ class TabularRegressorMLP(TabularRegressor):
                 else:
                     raise NotImplementedError(f"lr_max method='{self.lr_max}' not implemented.")
 
-                if self.show_progress:
-                    print(f"  lr_max: {lr_max:.3e}  [{self.lr_max.upper()}]")
-
             except Exception as e:
 
                 print(e)
@@ -183,12 +201,14 @@ class TabularRegressorMLP(TabularRegressor):
                 print("------====== lr_find failed --> falling back to lr_max=1e-3 ======------")
                 lr_max = 1e-3
 
-                if self.show_progress:
-                    print(f"lr_max: {lr_max:.3e}  [{self.lr_max.upper()}; fallback]")
-
-            return lr_max
-
         else:
             # not supported
 
             raise NotImplementedError(f"unsupported type for lr_max parameters: '{type(self.lr_max)}'")
+
+        # --- store & return lr_max -----------------------
+        if self.show_progress:
+            print(f"lr_max: {lr_max:.3e}  [self.lr_max='{self.lr_max}']")
+
+        self.last_lr_max = lr_max
+        return lr_max
