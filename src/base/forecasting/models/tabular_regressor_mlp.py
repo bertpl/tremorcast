@@ -77,7 +77,6 @@ class TabularRegressorMLP(TabularRegressor):
 
         # --- general settings ----------------------------
         fastai.torch_core.set_seed(1, reproducible=True)
-        fastai.torch_core.set_num_threads(32)
 
         # --- prepare data --------------------------------
 
