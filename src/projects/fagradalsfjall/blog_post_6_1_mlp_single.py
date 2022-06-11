@@ -110,59 +110,40 @@ def blog_6_1_mlp_single_grid_search(n: int):
         pickle.dump(ts_mlp_model, f)
 
 
-# def blog_6_cv_final_comparisons():
-#
-#     # --- simulate ----------------------------------------
-#     naive_models = {
-#         "naive-constant": TimeSeriesModelNaiveConstant(FORECAST_SIGNAL_NAME),
-#         "naive-mean": TimeSeriesModelNaiveMean(FORECAST_SIGNAL_NAME),
-#     }
-#
-#     earlier_models = {
-#         "ar-192": TimeSeriesModelMultiStepOLS(FORECAST_SIGNAL_NAME, p=192, n=1),
-#         "n-step-ols-288-288": TimeSeriesModelMultiStepOLS(FORECAST_SIGNAL_NAME, p=288, n=288),
-#         "n-step-pls-288-288-7": TimeSeriesModelMultiStepPLS(FORECAST_SIGNAL_NAME, p=288, n=288, rank=7),
-#     }
-#
-#     # --- load models -----------------------------------------
-#     selection_method = ParamSelectionMethod.OPTIMAL
-#     models = dict()
-#     for n in [1, 16]:
-#
-#         print(f"--- N={n} -------------")
-#
-#         # load
-#         with open(get_filename_full_cv_model(n=n), "rb") as f:
-#             model = pickle.load(f)  # type: TimeSeriesModelMultiStepNeuralMLP
-#
-#         # select params & set
-#         params = model.cv_results["best_params_by_method"][selection_method]["params"]
-#         for param_name, value in params.items():
-#             model.set_param(param_name, value)
-#             print(f"{param_name}: {value} ")
-#         print()
-#
-#         # remove cv settings --> avoid redoing CV all over again
-#         model.cv_settings = None
-#
-#         # keep track in dict
-#         models[n] = model
-#
-#     nn_models = {
-#         "1-step-mlp": models[1],
-#         "16-step-mlp": models[16],
-#     }
-#
-#     # --- simulate ----------------------------------------
-#     evaluate_forecast_models(
-#         models=naive_models | earlier_models | nn_models,
-#         retrain=False,
-#         stride=1,
-#         results_sub_folder="post_6_nn",
-#         simulate=True,
-#         evaluate=True,
-#         set_name=f"final_result",
-#     )
+def blog_6_1_mlp_single_grid_search_plots(n: int):
+
+    # --- load --------------------------------------------
+    model_filename = get_filename_full_cv_model(n)
+    with open(model_filename, "rb") as f:
+        model = pickle.load(f)  # type: TimeSeriesModelRegressionMLP
+
+    # --- show optimal parameters -------------------------
+    cv_result = model.cv.results.best_result
+    params = cv_result.params
+    print("--------------------------------------")
+    print(f"n={n}")
+    for key, value in params.items():
+        print(f"{key}: {value}")
+    print("--------------------------------------")
+
+    # --- create plots per parameter ----------------------
+    all_param_values = model.cv.results.all_param_values()  # type: dict
+    for param_name, param_values in all_param_values.items():
+        if (len(param_values) > 1) and (not isinstance(param_values[0], str)):
+
+            param_values, train_metric_mean, train_metric_std, val_metric_mean, val_metric_std = model.cv.results.sweep_by_filter(param_name)
+
+            plot_cv_results(
+                param_values=param_values,
+                training_loss_mean=train_metric_mean,
+                training_loss_std=train_metric_std,
+                validation_loss_mean=val_metric_mean,
+                validation_loss_std=val_metric_std,
+                fig_filename=get_filename_full_cv_sweep_fig(param_name, n),
+                fig_title=f"Grid Search Cross-Validation Results (n={n})",
+                x_label=param_name,
+                log_x_scale=(param_name != 'n_layers')
+            )
 
 
 # =================================================================================================
@@ -318,7 +299,7 @@ def get_cv_settings_full(n: int) -> Tuple[TimeSeriesModelRegressionMLP, dict, di
     }
 
     # --- grid search arguments ---------------------------
-    grid_search_kwargs = dict(n_splits=5, n_jobs=6, score_metric=ScoreMetric.MAE)
+    grid_search_kwargs = dict(n_splits=5, score_metric=ScoreMetric.MAE)
 
     # --- return ------------------------------------------
     return model, param_grid, grid_search_kwargs
@@ -341,6 +322,10 @@ def get_filename_1d_sweep_model(sweep: Sweep, n: int) -> str:
 
 def get_filename_full_cv_model(n: int) -> str:
     return os.path.join(_get_output_path("post_6_nn"), f"mlp_single_cv_grid_search_{n}_step.pkl")
+
+
+def get_filename_full_cv_sweep_fig(param_name: str, n: int) -> str:
+    return os.path.join(_get_output_path("post_6_nn"), f"mlp_single_cv_grid_search_{n}_step_{param_name}_sweep.png")
 
 
 # =================================================================================================
@@ -369,6 +354,36 @@ def plot_sweep_result(sweep: Sweep, n: int):
     ) = model.cv.results.sweep_by_filter(
         param_name=sweep_settings.param_name,
     )
+
+    # --- call plotting routing ---------------------------
+    plot_cv_results(
+        param_values=param_values,
+        training_loss_mean=training_loss_mean,
+        training_loss_std=training_loss_std,
+        validation_loss_mean=validation_loss_mean,
+        validation_loss_std=validation_loss_std,
+        fig_filename=get_filename_1d_sweep_fig(sweep, n),
+        fig_title="1D sweep cross-validation results" + (f"\n({sweep_settings.sub_title})" if sweep_settings.sub_title else ""),
+        x_label=sweep_settings.x_label,
+        log_x_scale=sweep_settings.log_x_scale
+    )
+
+
+def plot_cv_results(
+    param_values: List[float],
+    training_loss_mean: List[float],
+    training_loss_std: List[float],
+    validation_loss_mean: List[float],
+    validation_loss_std: List[float],
+    fig_filename: str,
+    fig_title: str,
+    x_label: str,
+    log_x_scale: bool,
+):
+
+    plot_style_matplotlib_default()
+
+    # --- argument handling -------------------------------
     training_loss_mean = np.array(training_loss_mean)
     training_loss_std = np.array(training_loss_std)
     validation_loss_mean = np.array(validation_loss_mean)
@@ -402,8 +417,8 @@ def plot_sweep_result(sweep: Sweep, n: int):
 
     ax.legend([h_train[0], h_val[0]], ["mean training loss", "mean validation loss"])
 
-    ax.set_xlabel(sweep_settings.x_label)
-    if sweep_settings.log_x_scale:
+    ax.set_xlabel(x_label)
+    if log_x_scale:
         ax.set_xscale("log")
     ax.set_xticks(param_values)
     ax.set_xticklabels([str(pv) for pv in param_values])
@@ -416,9 +431,7 @@ def plot_sweep_result(sweep: Sweep, n: int):
     y_max = min(10 * min(validation_loss_mean), y_max_ideal)  # make sure minimum validation loss is still discernible
     ax.set_ylim(bottom=0.0, top=y_max)
 
-    fig.suptitle(
-        "1D sweep cross-validation results" + (f"\n({sweep_settings.sub_title})" if sweep_settings.sub_title else "")
-    )
+    fig.suptitle(fig_title)
 
     fig.set_size_inches(w=8, h=6)
     fig.tight_layout()
@@ -442,5 +455,6 @@ def plot_sweep_result(sweep: Sweep, n: int):
     ax.set_xlim(x_min, x_max)
 
     # --- save fig ----------------------------------------
-    fig_filename = get_filename_1d_sweep_fig(sweep, n)
     fig.savefig(fig_filename, dpi=600)
+
+
