@@ -52,13 +52,14 @@ def blog_6_2_mlp_multi_sub_model_cv_simulate(n: int, n_models: int, sweep: Multi
         param_grid = dict(
             n_hidden_layers=[1],
             layer_width=[100],
-            n_epochs=[1, 3, 10, 30, 100],
-            wd=[0.0001, 0.001, 0.01, 0.1, 1, 10, 100, 1000],
+            n_epochs=[1, 10, 100],
+            wd=[0.001, 0.01, 0.1, 1, 10, 100, 1000],
             lr_max=['valley', 'aggressive'],
             input_selection_indices=[
-                exp_spaced_indices_fixed_max(n=16, max_index=15),   # 16 = 4h
-                exp_spaced_indices_fixed_max(n=16, max_index=47),   # 48 = 12h
-                exp_spaced_indices_fixed_max(n=16, max_index=191),  # 192 = 48h
+                tuple(exp_spaced_indices_fixed_max(n=16, max_index=15)),   # 16 = 4h
+                tuple(exp_spaced_indices_fixed_max(n=16, max_index=31)),  # 32 = 8h
+                tuple(exp_spaced_indices_fixed_max(n=16, max_index=95)),   # 96 = 24h
+                tuple(exp_spaced_indices_fixed_max(n=16, max_index=191)),  # 192 = 48h
             ]
         )
 
