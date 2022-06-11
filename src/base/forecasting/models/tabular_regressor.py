@@ -255,7 +255,7 @@ class CVResults:
             all_values = all_param_values[param_name]
 
             print(
-                f"  {param_name: <{max_param_len+1}}: {param_value: <18}  "
+                f"  {param_name: <{max_param_len+1}}: {str(param_value): <18}  "
                 + "<-- ["
                 + ", ".join([str(v) for v in all_values])
                 + "]"
