@@ -22,10 +22,9 @@ from src.projects.fagradalsfjall.evaluate_models import get_dataset_train
 from src.tools.matplotlib import plot_style_matplotlib_default
 
 from ._project_settings import FORECAST_SIGNAL_NAME
-from .evaluate_models.evaluate_forecast_models import _get_output_path, evaluate_forecast_models
-
 from .blog_post_6_1_mlp_single import get_filename_full_cv_model
 from .blog_post_6_2_mlp_multi import _get_optimal_model
+from .evaluate_models.evaluate_forecast_models import _get_output_path, evaluate_forecast_models
 
 
 # =================================================================================================
@@ -99,9 +98,7 @@ def blog_6_3_mlp_multi_final_comparisons():
     }
 
     # --- load models -----------------------------------------
-    nn_models = {
-        "288-step-mlp-multi": _get_optimal_model(n=288)
-    }
+    nn_models = {"288-step-mlp-multi": _get_optimal_model(n=288)}
 
     # --- simulate ----------------------------------------
     evaluate_forecast_models(

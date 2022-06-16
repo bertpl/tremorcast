@@ -131,7 +131,13 @@ def blog_6_1_mlp_single_grid_search_plots(n: int):
     for param_name, param_values in all_param_values.items():
         if (len(param_values) > 1) and (not isinstance(param_values[0], str)):
 
-            param_values, train_metric_mean, train_metric_std, val_metric_mean, val_metric_std = model.cv.results.sweep_by_filter(param_name)
+            (
+                param_values,
+                train_metric_mean,
+                train_metric_std,
+                val_metric_mean,
+                val_metric_std,
+            ) = model.cv.results.sweep_by_filter(param_name)
 
             plot_cv_results(
                 param_values=param_values,
@@ -142,7 +148,7 @@ def blog_6_1_mlp_single_grid_search_plots(n: int):
                 fig_filename=get_filename_full_cv_sweep_fig(param_name, n),
                 fig_title=f"Grid Search Cross-Validation Results (n={n})",
                 x_label=param_name,
-                log_x_scale=(param_name != 'n_layers')
+                log_x_scale=(param_name != "n_layers"),
             )
 
 
@@ -363,9 +369,10 @@ def plot_sweep_result(sweep: Sweep, n: int):
         validation_loss_mean=validation_loss_mean,
         validation_loss_std=validation_loss_std,
         fig_filename=get_filename_1d_sweep_fig(sweep, n),
-        fig_title="1D sweep cross-validation results" + (f"\n({sweep_settings.sub_title})" if sweep_settings.sub_title else ""),
+        fig_title="1D sweep cross-validation results"
+        + (f"\n({sweep_settings.sub_title})" if sweep_settings.sub_title else ""),
         x_label=sweep_settings.x_label,
-        log_x_scale=sweep_settings.log_x_scale
+        log_x_scale=sweep_settings.log_x_scale,
     )
 
 
@@ -456,5 +463,3 @@ def plot_cv_results(
 
     # --- save fig ----------------------------------------
     fig.savefig(fig_filename, dpi=600)
-
-
