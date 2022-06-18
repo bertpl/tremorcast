@@ -1,1 +1,2 @@
-from .tabular_regressor import TabularRegressor, CVResults, ScoreMetric
+from .tabular_regressor import CVResults, ScoreMetric, TabularRegressor
+from .tabular_regressor_sklearn import ScalingType, TabularRegressorSklearn
