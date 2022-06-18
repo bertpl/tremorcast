@@ -7,6 +7,7 @@ from sklearn.base import BaseEstimator
 from sklearn.compose import TransformedTargetRegressor
 from sklearn.preprocessing import RobustScaler, StandardScaler
 
+from .feature_selectors import FeatureSelector
 from .tabular_regressor import TabularRegressor
 
 
@@ -39,6 +40,7 @@ class TabularRegressorSklearn(TabularRegressor):
         model: BaseEstimator,
         feature_scaler: Optional[ScalingType] = ScalingType.MEAN_STD,
         target_scaler: Optional[ScalingType] = ScalingType.MEAN_STD,
+        feature_selector: Optional[FeatureSelector] = None,
         remove_nans_before_fit: bool = True,
         name: str = "sklearn_wrapper",
         **kwargs,
@@ -48,13 +50,24 @@ class TabularRegressorSklearn(TabularRegressor):
         super().__init__(name, remove_nans_before_fit, **kwargs)
 
         # --- set parameters ------------------------------
-        self.model = model  # originally provided model, which we need to save to attribute with same name
+        self.model = model
         self.feature_scaler = feature_scaler
         self.target_scaler = target_scaler
+        self.feature_selector = feature_selector
 
-        # --- build pipeline ------------------------------
-        if feature_scaler:
-            model = pipeline.Pipeline(steps=[("scaling", feature_scaler.get_scaler()), ("model", model)])
+        # --- build actual pipeline -----------------------
+        if feature_selector or feature_scaler:
+            pipeline_steps = []
+
+            if feature_selector:
+                pipeline_steps.append(("feature_selector", feature_selector))
+
+            if feature_scaler:
+                pipeline_steps.append(("feature_scaling", feature_scaler.get_scaler()))
+
+            pipeline_steps.append(("model", model))
+
+            model = pipeline.Pipeline(steps=pipeline_steps)
 
         if target_scaler:
             model = TransformedTargetRegressor(
