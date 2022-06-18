@@ -13,6 +13,7 @@ from sklearn.metrics import make_scorer, mean_absolute_error, mean_squared_error
 from sklearn.model_selection import GridSearchCV, KFold
 
 from src.tools.datetime import estimate_eta, format_datetime, format_timedelta
+from src.tools.math import remove_nan_rows
 from src.tools.progress import ProgressTimer
 
 CV_METADATA_PARAM = "cv_metadata"
@@ -53,10 +54,9 @@ class TabularRegressor(BaseEstimator, RegressorMixin):
     # -------------------------------------------------------------------------
     #  Constructor
     # -------------------------------------------------------------------------
-    def __init__(self, name: str, n_inputs: int, n_outputs: int, **kwargs):
+    def __init__(self, name: str, remove_nans_before_fit: bool = True, **kwargs):
         self.name = name
-        self.n_inputs = n_inputs
-        self.n_outputs = n_outputs
+        self.remove_nans_before_fit = remove_nans_before_fit
         self._is_fitted = False
 
         # other hyper-parameters
@@ -82,13 +82,16 @@ class TabularRegressor(BaseEstimator, RegressorMixin):
     # -------------------------------------------------------------------------
     #  Fit
     # -------------------------------------------------------------------------
-    def fit(self, x: np.ndarray, y: np.ndarray):
+    def fit(self, x: np.ndarray, y: np.ndarray, **fit_params):
         """Fit model based on (m, n_inputs) array x and (m, n_outputs) array y."""
         timer = ProgressTimer()
         if self.cv_active():
             self.cv.pre_fit_progress(self.get_cv_metadata())
 
-        self._fit(x, y)
+        if self.remove_nans_before_fit:
+            x, y = remove_nan_rows(x, y)
+
+        self._fit(x, y, **fit_params)
         self._is_fitted = True
 
         if self.cv_active():
@@ -132,11 +135,11 @@ class TabularRegressor(BaseEstimator, RegressorMixin):
     # -------------------------------------------------------------------------
     #  Abstract Methods
     # -------------------------------------------------------------------------
-    def _fit(self, x: np.ndarray, y: np.ndarray):
+    def _fit(self, x: np.ndarray, y: np.ndarray, **fit_params):
         """Fit model based on (m, n_inputs) array x and (m, n_outputs) array y."""
         raise NotImplementedError()
 
-    def predict(self, x: np.ndarray) -> np.ndarray:
+    def predict(self, x: np.ndarray, **predict_params) -> np.ndarray:
         """Return (m, n_outputs) array y based on (m, n_inputs) array x."""
         raise NotImplementedError()
 
