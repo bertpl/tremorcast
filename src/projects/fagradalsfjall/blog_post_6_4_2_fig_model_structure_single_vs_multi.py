@@ -29,7 +29,7 @@ def fig_single_vs_multi():
     fig, ax = plt.subplots(nrows=1, ncols=2, gridspec_kw={"width_ratios": col_widths, "height_ratios": row_heights})
     ax = [ax]
 
-    ax_left, ax_right = ax[0][0], ax[0][1]    # type: plt.Axes, plt.Axes
+    ax_left, ax_right = ax[0][0], ax[0][1]  # type: plt.Axes, plt.Axes
 
     # --- colors ------------------------------------------
     dark_grey = (0.3, 0.3, 0.3)
@@ -107,18 +107,53 @@ def fig_single_vs_multi():
         ax_right.text(0, y_delta, "f", ha="center", va="center")
         ax_right.text(3, y_delta, "f", ha="center", va="center")
 
-        plot_mapping(ax_right, -6, -3, 8, layer_width-1, gradient_from, gradient_to, mapping_name="", y_delta_right=y_delta)
-        plot_mapping(ax_right, -3, 0, layer_width, layer_width, gradient_from, gradient_to, mapping_name="", y_delta_left=y_delta, y_delta_right=y_delta)
-        plot_mapping(ax_right, 0, 3, layer_width, layer_width, gradient_from, gradient_to, mapping_name="", y_delta_left=y_delta, y_delta_right=y_delta)
-        plot_mapping(ax_right, 3, 6, layer_width, 1, gradient_from, gradient_to, mapping_name="", y_delta_left=y_delta, y_delta_right=y_delta)
+        plot_mapping(
+            ax_right, -6, -3, 8, layer_width - 1, gradient_from, gradient_to, mapping_name="", y_delta_right=y_delta
+        )
+        plot_mapping(
+            ax_right,
+            -3,
+            0,
+            layer_width,
+            layer_width,
+            gradient_from,
+            gradient_to,
+            mapping_name="",
+            y_delta_left=y_delta,
+            y_delta_right=y_delta,
+        )
+        plot_mapping(
+            ax_right,
+            0,
+            3,
+            layer_width,
+            layer_width,
+            gradient_from,
+            gradient_to,
+            mapping_name="",
+            y_delta_left=y_delta,
+            y_delta_right=y_delta,
+        )
+        plot_mapping(
+            ax_right,
+            3,
+            6,
+            layer_width,
+            1,
+            gradient_from,
+            gradient_to,
+            mapping_name="",
+            y_delta_left=y_delta,
+            y_delta_right=y_delta,
+        )
 
         plot_vector(ax_right, 6, 1, None, light_grey, "", y_delta=y_delta)
         ax_right.text(6, y_delta, name, ha="center", va="center")
 
     x_delta_dots = -0.1
-    ax_right.text(-3+x_delta_dots, -1.75, r"$\vdots$", ha="center", va="center", fontsize=18)
+    ax_right.text(-3 + x_delta_dots, -1.75, r"$\vdots$", ha="center", va="center", fontsize=18)
     ax_right.text(+x_delta_dots, -1.75, r"$\vdots$", ha="center", va="center", fontsize=18)
-    ax_right.text(3+x_delta_dots, -1.75, r"$\vdots$", ha="center", va="center", fontsize=18)
+    ax_right.text(3 + x_delta_dots, -1.75, r"$\vdots$", ha="center", va="center", fontsize=18)
 
     subtitle(ax_right, "N-step-ahead - Multiple MLPs")
 
@@ -157,7 +192,9 @@ def fig_single_vs_multi():
 # -------------------------------------------------------------------------
 #  Helpers
 # -------------------------------------------------------------------------
-def plot_vector(ax: plt.Axes, x_pos: float, n: int, dot_clr: tuple, edge_clr: tuple, caption_txt: str = None, y_delta: int = 0):
+def plot_vector(
+    ax: plt.Axes, x_pos: float, n: int, dot_clr: tuple, edge_clr: tuple, caption_txt: str = None, y_delta: int = 0
+):
 
     # --- init -----------------------------------
     y_pos = [i - ((n - 1) / 2) + y_delta for i in range(n)]
@@ -264,4 +301,4 @@ def plot_mapping(
     if mapping_name is None:
         mapping_name = f"{n_from}x{n_to}\n\nlinear\nmapping"
 
-    ax.text((x_from + x_to) / 2, (y_delta_left + y_delta_right)/2, mapping_name, va="center", ha="center")
+    ax.text((x_from + x_to) / 2, (y_delta_left + y_delta_right) / 2, mapping_name, va="center", ha="center")
