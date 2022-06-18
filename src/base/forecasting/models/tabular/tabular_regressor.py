@@ -82,7 +82,7 @@ class TabularRegressor(BaseEstimator, RegressorMixin):
     # -------------------------------------------------------------------------
     #  Fit
     # -------------------------------------------------------------------------
-    def fit(self, x: np.ndarray, y: np.ndarray, **fit_params):
+    def fit(self, x: np.ndarray, y: np.ndarray, **fit_params) -> TabularRegressor:
         """Fit model based on (m, n_inputs) array x and (m, n_outputs) array y."""
         timer = ProgressTimer()
         if self.cv_active():
@@ -96,6 +96,8 @@ class TabularRegressor(BaseEstimator, RegressorMixin):
 
         if self.cv_active():
             self.cv.post_fit_progress(self.get_cv_metadata(), timer.sec_elapsed())
+
+        return self
 
     def __sklearn_is_fitted__(self) -> bool:
         return self._is_fitted
