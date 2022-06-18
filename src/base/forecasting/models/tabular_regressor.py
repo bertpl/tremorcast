@@ -239,6 +239,10 @@ class CVResults:
         return param_values, train_metric_mean, train_metric_std, val_metric_mean, val_metric_std
 
     def show_optimal_results(self):
+        def summarize_losses(losses: List[float]) -> str:
+            mean = np.mean(losses)
+            std = np.std(losses)
+            return f"{mean:.3f} ± {std:.3f} <-- [{''.join([f'{x:.3f}'.ljust(10) for x in losses])}]"
 
         # --- all values for each param -------------------
         all_param_values = self.all_param_values()
@@ -249,6 +253,8 @@ class CVResults:
 
         # --- show results --------------------------------
         print("-" * 80)
+        print("Training losses   : " + summarize_losses(self.best_result.train_metrics))
+        print("Validation losses : " + summarize_losses(self.best_result.val_metrics))
         print("Optimal parameter values:")
         for param_name in param_names:
             param_value = self.best_result.params[param_name]
