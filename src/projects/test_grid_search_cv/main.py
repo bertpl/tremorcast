@@ -1,8 +1,8 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-from src.base.forecasting.models.tabular_regressor import ScoreMetric
-from src.base.forecasting.models.tabular_regressor_mlp import TabularRegressorMLP
+from src.base.forecasting.models.tabular.legacy.tabular_regressor_mlp import TabularRegressorMLP
+from src.base.forecasting.models.tabular.tabular_regressor import ScoreMetric
 
 from .create_dataset import DataSetType, create_dataset
 

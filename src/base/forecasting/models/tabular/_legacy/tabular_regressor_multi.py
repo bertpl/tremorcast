@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Union
 
 import numpy as np
 
-from .tabular_regressor import CVResults, ScoreMetric, TabularRegressor
+from src.base.forecasting.models.tabular.tabular_regressor import CVResults, ScoreMetric, TabularRegressor
 
 
 # =================================================================================================

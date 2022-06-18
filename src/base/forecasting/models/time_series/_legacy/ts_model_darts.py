@@ -5,7 +5,7 @@ import pandas as pd
 from darts.models.forecasting.forecasting_model import ForecastingModel
 from darts.timeseries import TimeSeries
 
-from .ts_model import TimeSeriesForecastModel
+from src.base.forecasting.models.time_series.ts_model import TimeSeriesForecastModel
 
 
 class TimeSeriesModelDarts(TimeSeriesForecastModel):

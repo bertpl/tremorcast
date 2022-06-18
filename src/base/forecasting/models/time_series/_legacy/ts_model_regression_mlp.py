@@ -1,6 +1,7 @@
 from typing import List, Union
 
-from .tabular_regressor_mlp import TabularRegressorMLP
+from src.base.forecasting.models.tabular.legacy.tabular_regressor_mlp import TabularRegressorMLP
+
 from .ts_model_regression import TimeSeriesModelRegression
 
 

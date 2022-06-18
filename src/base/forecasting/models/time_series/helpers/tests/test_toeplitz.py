@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from src.base.forecasting.models.helpers.toeplitz import build_toeplitz
+from src.base.forecasting.models.time_series.helpers.toeplitz import build_toeplitz
 
 
 @pytest.mark.parametrize(

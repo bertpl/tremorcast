@@ -1,6 +1,6 @@
 import numpy as np
 
-from .tabular_regressor import TabularRegressor
+from src.base.forecasting.models.tabular.tabular_regressor import TabularRegressor
 
 
 # =================================================================================================

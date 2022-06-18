@@ -12,7 +12,7 @@ from fastai.tabular.model import TabularModel
 from fastai.torch_core import Tensor
 from torch.nn import ELU, SELU, ReLU
 
-from src.base.forecasting.models.tabular_regressor import TabularRegressor
+from src.base.forecasting.models.tabular.tabular_regressor import TabularRegressor
 from src.tools.progress import add_tqdm_callback, remove_tqdm_callback
 
 

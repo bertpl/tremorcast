@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-from .ts_model import TimeSeriesForecastModel
+from src.base.forecasting.models.time_series.ts_model import TimeSeriesForecastModel
 
 
 class TimeSeriesModelNaiveConstant(TimeSeriesForecastModel):

@@ -6,9 +6,9 @@ from typing import Dict, List, Optional, Tuple, Union
 import numpy as np
 import pandas as pd
 
-from .helpers import build_toeplitz
-from .tabular_regressor import CVResults, ScoreMetric, TabularRegressor
-from .ts_model import TimeSeriesForecastModelAutoScaled
+from src.base.forecasting.models.tabular.tabular_regressor import CVResults, ScoreMetric, TabularRegressor
+from src.base.forecasting.models.time_series.helpers import build_toeplitz
+from src.base.forecasting.models.time_series.ts_model import TimeSeriesForecastModelAutoScaled
 
 
 # =================================================================================================

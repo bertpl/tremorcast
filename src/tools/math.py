@@ -1,10 +1,13 @@
 import math
-from typing import List
+from typing import List, Tuple
 
 import numpy as np
 from scipy import optimize
 
 
+# =================================================================================================
+#  Exponentially spaced indices
+# =================================================================================================
 def exp_spaced_indices_fixed_base(n: int, exp_base: float) -> List[int]:
     """Returns indices (int) starting at 0 which are exponentially spaced, starting with spacing 1 and increasing
     with exp_base each sample"""
@@ -47,3 +50,16 @@ def exp_spaced_indices_fixed_max(n: int, max_index: int) -> List[int]:
         opt_exp_base, _ = optimize.brentq(brentq_zero_function, exp_base_min, exp_base_max, full_output=True)
 
         return exp_spaced_indices_fixed_base(n, opt_exp_base)
+
+
+# =================================================================================================
+#  Misc
+# =================================================================================================
+def remove_nan_rows(x: np.ndarray, y: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+
+    rows_without_nan = [not (any(x_row) or any(y_row)) for x_row, y_row in zip(np.isnan(x), np.isnan(y))]
+
+    x = x[rows_without_nan]
+    y = y[rows_without_nan]
+
+    return x, y

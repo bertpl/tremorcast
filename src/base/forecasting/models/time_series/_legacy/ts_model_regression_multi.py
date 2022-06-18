@@ -4,8 +4,9 @@ from typing import Dict, List, Union
 
 import pandas as pd
 
-from . import ScoreMetric
-from .tabular_regressor_multi import TabularRegressorMulti
+from src.base.forecasting.models import ScoreMetric
+from src.base.forecasting.models.tabular.legacy.tabular_regressor_multi import TabularRegressorMulti
+
 from .ts_model_regression import TimeSeriesModelRegression
 
 

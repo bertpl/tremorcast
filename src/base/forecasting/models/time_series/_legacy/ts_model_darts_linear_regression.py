@@ -4,7 +4,7 @@ from darts.models import RegressionModel
 from darts.timeseries import TimeSeries
 from sklearn.linear_model import Ridge
 
-from .ts_model import TimeSeriesForecastModelAutoScaled
+from src.base.forecasting.models.time_series.ts_model import TimeSeriesForecastModelAutoScaled
 
 # --- AR regularization ---
 #

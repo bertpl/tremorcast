@@ -1,4 +1,3 @@
-import itertools
 import math
 import random
 from abc import abstractmethod
@@ -14,10 +13,9 @@ from src.base.forecasting.evaluation.cross_validation import (
     select_params,
     split_cv_data,
 )
+from src.base.forecasting.models.time_series.helpers import build_toeplitz
+from src.base.forecasting.models.time_series.ts_model import TimeSeriesForecastModelAutoScaled
 from src.tools.progress import ProgressTimer
-
-from .helpers import build_toeplitz
-from .ts_model import TimeSeriesForecastModelAutoScaled
 
 
 # =================================================================================================

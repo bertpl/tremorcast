@@ -25,10 +25,29 @@ class TabularRegressor(BaseEstimator, RegressorMixin):
     """
     sklearn-compatible regression class that can e.g. be used inside a GridSearchCV.
 
-    Requisites for child classes:
-      - hyper-parameters need to be passable to the constructor
-      - hyper-parameters need to be stored in identically named attributes
-      - constructors of child classes should accept **kwargs to be passed on to superclass constructor
+    The main purpose of this class is to provide its own cross-validation wrapper around GridSearchCV with
+        following additional features:
+            - progress indication with time estimates
+            - randomization of grid search to remove bias of time estimates
+            - convenience class for fetching & inspecting cross-validation results
+
+    Other benefits are the ability to wrap regressors of other packages (fast.ai) in a sklearn-compatible container.
+
+    NOTE: sklearn's GridSearchCV performs the following tasks at the beginning of each experiment
+           - params = estimator.get_params()
+           - update some parameters in 'params' corresponding to grid search
+           - create new_estimator as new instance of estimator's class, providing **params to the constructor
+           - check via new_estimator.get_params() to see if params are correctly set
+
+          our own grid search then sets optimal parameters on this instance using the set_params() method
+
+          AS A RESULT, the following requirements need to hold for child classes:
+            - hyper-parameters need to be passable to the constructor
+            - hyper-parameters need to be stored in identically named attributes
+                     (because that's how get_params() gets its parameter values)
+            - constructors of child classes should accept **kwargs to be passed on to superclass constructor
+                     (because that's how we manage to sneak in additional parameters such as CV_METADATA_PARAM)
+            - set_params() needs to behave consistently
     """
 
     # -------------------------------------------------------------------------
@@ -46,40 +65,37 @@ class TabularRegressor(BaseEstimator, RegressorMixin):
 
         # internal
         self._grid_search_cv = TabularCrossValidation(self)
-        self._last_fit_time_secs = 0.0
 
     def get_params(self, deep=True):
         params = super().get_params(deep)
-        params[CV_METADATA_PARAM] = None
+        params[CV_METADATA_PARAM] = None  # make sure CV_METADATA_PARAM is recognized as a valid parameter
         return params
 
-    @property
-    def show_progress(self) -> bool:
-        # don't show progress if cross-validation is ongoing
-        return not (hasattr(self, CV_METADATA_PARAM) and (getattr(self, CV_METADATA_PARAM) is not None))
+    def get_tunable_param_names(self) -> Set[str]:
+        """Returns subset of parameters that are actually tunable, i.e. excluding e.g. CV_METADATA_PARAM"""
+        param_names = set(self.get_params().keys())
+        return param_names.difference([CV_METADATA_PARAM])
+
+    def set_params(self, **params):
+        super().set_params(**params)
 
     # -------------------------------------------------------------------------
     #  Fit
     # -------------------------------------------------------------------------
     def fit(self, x: np.ndarray, y: np.ndarray):
         """Fit model based on (m, n_inputs) array x and (m, n_outputs) array y."""
-        self.cv.pre_fit_progress()  # only when CV is active
         timer = ProgressTimer()
+        if self.cv_active():
+            self.cv.pre_fit_progress(self.get_cv_metadata())
 
         self._fit(x, y)
         self._is_fitted = True
 
-        self.cv.post_fit_progress(timer.sec_elapsed())  # only when CV is active
+        if self.cv_active():
+            self.cv.post_fit_progress(self.get_cv_metadata(), timer.sec_elapsed())
 
     def __sklearn_is_fitted__(self) -> bool:
         return self._is_fitted
-
-    # -------------------------------------------------------------------------
-    #  Predict
-    # -------------------------------------------------------------------------
-    def predict(self, x: np.ndarray) -> np.ndarray:
-        """Return (m, n_outputs) array y based on (m, n_inputs) array x."""
-        raise NotImplementedError()
 
     # -------------------------------------------------------------------------
     #  Cross-Validation
@@ -89,13 +105,20 @@ class TabularRegressor(BaseEstimator, RegressorMixin):
         """Return TabularCrossValidation object that can perform grid search CV on this model."""
         return self._grid_search_cv
 
+    def get_cv_metadata(self) -> Optional[CVMetaData]:
+        return getattr(self, CV_METADATA_PARAM, None)
+
+    def cv_active(self) -> bool:
+        """True if this instance is being used inside a CV grid search"""
+        return self.get_cv_metadata() is not None
+
+    @property
+    def show_progress(self) -> bool:
+        return not self.cv_active()
+
     # -------------------------------------------------------------------------
     #  Internal
     # -------------------------------------------------------------------------
-    def _fit(self, x: np.ndarray, y: np.ndarray):
-        """Fit model based on (m, n_inputs) array x and (m, n_outputs) array y."""
-        raise NotImplementedError()
-
     @staticmethod
     def _remove_nan(x: np.ndarray, y: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
 
@@ -105,6 +128,17 @@ class TabularRegressor(BaseEstimator, RegressorMixin):
         y = y[rows_without_nan]
 
         return x, y
+
+    # -------------------------------------------------------------------------
+    #  Abstract Methods
+    # -------------------------------------------------------------------------
+    def _fit(self, x: np.ndarray, y: np.ndarray):
+        """Fit model based on (m, n_inputs) array x and (m, n_outputs) array y."""
+        raise NotImplementedError()
+
+    def predict(self, x: np.ndarray) -> np.ndarray:
+        """Return (m, n_outputs) array y based on (m, n_inputs) array x."""
+        raise NotImplementedError()
 
 
 # =================================================================================================
@@ -357,55 +391,44 @@ class TabularCrossValidation:
         self.results.show_optimal_results()
 
         # --- transfer params to regressor & refit --------
-        tunable_param_names = set(self.get_param_names())
-        for param_name, param_value in grid_search.best_params_.items():
-            if param_name in tunable_param_names:
-                # make sure to only transfer the actual tunable parameters, not internal meta-parameters
-                setattr(self.regressor, param_name, param_value)
+        tunable_param_names = set(self.regressor.get_tunable_param_names())
+        params_to_be_set = {
+            param_name: param_value
+            for param_name, param_value in grid_search.best_params_.items()
+            if param_name not in tunable_param_names
+        }
+        self.regressor.set_params(**params_to_be_set)
 
         # refit 'regressor' on full data after having transferred optimal parameters
         self.regressor.fit(x, y)
         print("-" * 80)
 
     # -------------------------------------------------------------------------
-    #  Parameters
-    # -------------------------------------------------------------------------
-    def get_param_names(self):
-        """Get parameter names that can be tuned using cross-validation."""
-        return sorted([p for p in self.regressor.get_params().keys() if p not in self.NON_TUNABLE_PARAMETERS])
-
-    # -------------------------------------------------------------------------
     #  Progress reporting
     # -------------------------------------------------------------------------
-    def pre_fit_progress(self):
-        if (
-            hasattr(self.regressor, CV_METADATA_PARAM)
-            and (cv_metadata := getattr(self.regressor, CV_METADATA_PARAM)) is not None
-        ):
-            print(
-                f"[{format_datetime(datetime.datetime.now())}] "
-                + f"[{cv_metadata.i_param_set+1: >4}/{cv_metadata.n_param_sets: <4}] START ".ljust(120, ".")
-            )
+    @staticmethod
+    def pre_fit_progress(cv_metadata: CVMetaData):
+        print(
+            f"[{format_datetime(datetime.datetime.now())}] "
+            + f"[{cv_metadata.i_param_set+1: >4}/{cv_metadata.n_param_sets: <4}] START ".ljust(120, ".")
+        )
 
-    def post_fit_progress(self, time_elapsed: float):
-        if (
-            hasattr(self.regressor, CV_METADATA_PARAM)
-            and (cv_metadata := getattr(self.regressor, CV_METADATA_PARAM)) is not None
-        ):
+    @staticmethod
+    def post_fit_progress(cv_metadata: CVMetaData, time_elapsed: float):
 
-            eta_dt, eta_secs = estimate_eta(
-                start_time=cv_metadata.start_time,
-                work_fraction_done=(cv_metadata.i_param_set + 0.5) / cv_metadata.n_param_sets,
-            )
+        eta_dt, eta_secs = estimate_eta(
+            start_time=cv_metadata.start_time,
+            work_fraction_done=(cv_metadata.i_param_set + 0.5) / cv_metadata.n_param_sets,
+        )
 
-            print(
-                f"[{format_datetime(datetime.datetime.now())}] "
-                + (
-                    f"[{cv_metadata.i_param_set + 1: >4}/{cv_metadata.n_param_sets: <4}] END ".ljust(25, ".")
-                    + f" [fit: {format_timedelta(time_elapsed): <6}] "
-                ).ljust(60, ".")
-                + f" [eta: {format_timedelta(eta_secs).ljust(8)} -->   {format_datetime(eta_dt)}]".rjust(60, ".")
-            )
+        print(
+            f"[{format_datetime(datetime.datetime.now())}] "
+            + (
+                f"[{cv_metadata.i_param_set + 1: >4}/{cv_metadata.n_param_sets: <4}] END ".ljust(25, ".")
+                + f" [fit: {format_timedelta(time_elapsed): <6}] "
+            ).ljust(60, ".")
+            + f" [eta: {format_timedelta(eta_secs).ljust(8)} -->   {format_datetime(eta_dt)}]".rjust(60, ".")
+        )
 
     # -------------------------------------------------------------------------
     #  Internal
