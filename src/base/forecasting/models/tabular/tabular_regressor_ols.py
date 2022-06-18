@@ -7,7 +7,7 @@ from .tabular_regressor_sklearn import TabularRegressorSklearn
 
 
 class TabularRegressorOLS(TabularRegressorSklearn):
-    def __init__(self, feature_selector: Optional[FeatureSelector] = None):
+    def __init__(self, feature_selector: Optional[FeatureSelector] = None, **kwargs):
 
         super().__init__(
             name="ols",
@@ -16,4 +16,5 @@ class TabularRegressorOLS(TabularRegressorSklearn):
             ),
             remove_nans_before_fit=True,
             feature_selector=feature_selector,
+            **kwargs
         )
