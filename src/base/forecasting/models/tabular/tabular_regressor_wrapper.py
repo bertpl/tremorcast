@@ -28,9 +28,9 @@ class ScalingType(Enum):
 
 
 # =================================================================================================
-#  SKlearn wrapper
+#  Wrapper
 # =================================================================================================
-class TabularRegressorSklearn(TabularRegressor):
+class TabularRegressorWrapper(TabularRegressor):
 
     # -------------------------------------------------------------------------
     #  CONSTRUCTOR
@@ -42,9 +42,10 @@ class TabularRegressorSklearn(TabularRegressor):
         target_scaler: Optional[ScalingType] = ScalingType.MEAN_STD,
         feature_selector: Optional[FeatureSelector] = None,
         remove_nans_before_fit: bool = True,
-        name: str = "sklearn_wrapper",
+        name: str = "wrapper",
         **kwargs,
     ):
+        """Wraps around another estimator in order to provide automatic scaling & feature selection."""
 
         # --- superclass constructor ----------------------
         super().__init__(name, remove_nans_before_fit, **kwargs)
