@@ -17,7 +17,7 @@ from src.tools.math import remove_nan_rows
 # =================================================================================================
 #  TimeSeries model based on TabularRegressor
 # =================================================================================================
-class TimeSeriesModelRegression(TimeSeriesForecastModel):
+class TimeSeriesModelAutoRegressive(TimeSeriesForecastModel):
     """
     This class implements a n-step-ahead timeseries regression model.
         n-step-ahead: we forecast samples 0, ... n-1
@@ -130,7 +130,7 @@ class TimeSeriesRegressionCrossValidation:
     # -------------------------------------------------------------------------
     #  Constructor
     # -------------------------------------------------------------------------
-    def __init__(self, ts_model: TimeSeriesModelRegression):
+    def __init__(self, ts_model: TimeSeriesModelAutoRegressive):
         self.ts_model = ts_model
         self.results = None  # type: Optional[CVResults]
 
