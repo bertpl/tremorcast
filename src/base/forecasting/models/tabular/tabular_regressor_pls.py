@@ -19,7 +19,6 @@ class TabularRegressorPLS(TabularRegressorWrapper):
         super().__init__(
             name="pls",
             model=PLSRegression(n_components=n_components, max_iter=max_iter, tol=tol, scale=False),
-            remove_nans_before_fit=True,
             feature_selector=feature_selector,
             **kwargs,
         )

@@ -51,7 +51,6 @@ class TabularRegressorMLP(TabularRegressorWrapper):
                 wd=wd,
                 n_seeds=n_seeds,
             ),
-            remove_nans_before_fit=False,
             feature_selector=feature_selector,
             **kwargs,
         )

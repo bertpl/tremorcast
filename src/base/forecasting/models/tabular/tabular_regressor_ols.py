@@ -14,7 +14,6 @@ class TabularRegressorOLS(TabularRegressorWrapper):
             model=LinearRegression(
                 fit_intercept=False,
             ),
-            remove_nans_before_fit=True,
             feature_selector=feature_selector,
             **kwargs,
         )

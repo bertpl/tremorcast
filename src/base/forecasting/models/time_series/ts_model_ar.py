@@ -56,18 +56,18 @@ class TimeSeriesModelAutoRegressive(TimeSeriesForecastModel):
     # -------------------------------------------------------------------------
     #  Fit & Predict
     # -------------------------------------------------------------------------
-    def _fit(self, scaled_training_data: pd.DataFrame):
+    def fit(self, training_data: pd.DataFrame):
 
         # --- construct tabulated dataset x,y -------------
-        x, y = self.build_tabulated_data(scaled_training_data)
+        x, y = self.build_tabulated_data(training_data)
 
         # --- fit model -----------------------------------
         self.regressor.fit(x, y)
 
-    def _predict(self, scaled_history: pd.DataFrame, n_samples: int) -> np.ndarray:
+    def predict(self, df_history: pd.DataFrame, n_samples: int) -> np.ndarray:
 
         # --- convert to numpy array ----------------------
-        history = scaled_history[self.signal_name].to_numpy()
+        history = df_history[self.signal_name].to_numpy()
         history = history.reshape((1, len(history)))
 
         # --- predict -------------------------------------

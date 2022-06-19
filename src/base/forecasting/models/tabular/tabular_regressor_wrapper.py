@@ -43,14 +43,13 @@ class TabularRegressorWrapper(TabularRegressor):
         feature_scaler: Optional[ScalingType] = ScalingType.MEAN_STD,
         target_scaler: Optional[ScalingType] = ScalingType.MEAN_STD,
         feature_selector: Optional[FeatureSelector] = None,
-        remove_nans_before_fit: bool = True,
         name: str = "wrapper",
         **kwargs,
     ):
         """Wraps around another estimator in order to provide automatic scaling & feature selection."""
 
         # --- superclass constructor ----------------------
-        super().__init__(name, remove_nans_before_fit, **kwargs)
+        super().__init__(name=name, remove_nans_before_fit=True, **kwargs)
 
         # --- set parameters ------------------------------
         self.model = model
