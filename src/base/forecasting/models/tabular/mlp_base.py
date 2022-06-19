@@ -236,7 +236,12 @@ class MLP(BaseEstimator, RegressorMixin):
 
         if self.show_progress:
             if self.n_seeds > 1:
-                print(f"  Picked best nn of {self.n_seeds}: loss = {best_rmse} out of {all_rmses}")
+                print(
+                    f"  Picked best of {self.n_seeds} runs --> loss = {best_rmse:.3e} = min("
+                    + "["
+                    + ", ".join([f"{x:.3e}" for x in all_rmses])
+                    + "])"
+                )
 
         self._nn = best_nn
 
@@ -255,7 +260,8 @@ class MLP(BaseEstimator, RegressorMixin):
 
     def _learn_one_cycle(self, lr_max: float, seed: int):
 
-        add_tqdm_callback(self._nn, enabled=self.show_progress, extra_msg=f"seed={seed}")
+        extra_msg = f"seed={seed}".ljust(8) if self.n_seeds > 1 else ""
+        add_tqdm_callback(self._nn, enabled=self.show_progress, extra_msg=extra_msg)
         self._nn.fit_one_cycle(self.n_epochs, lr_max=lr_max)
         remove_tqdm_callback(self._nn)
 
