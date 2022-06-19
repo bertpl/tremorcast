@@ -20,7 +20,7 @@ class FeatureSelector(TransformerMixin, BaseEstimator):
     # -------------------------------------------------------------------------
     #  Fit & Predict
     # -------------------------------------------------------------------------
-    def fit(self, x: np.ndarray, **fit_params):
+    def fit(self, x: np.ndarray, y: np.ndarray = None, **fit_params):
         self._selected_indices = self._get_feature_indices(n_features_total=x.shape[1])
         return self
 
