@@ -4,15 +4,15 @@ from typing import Dict, List, Set, Union
 
 import pandas as pd
 
+from src.base.forecasting.models.tabular import CVResults, ScoreMetric
 from src.base.forecasting.models.tabular.tabular_regressor_mlp_multi import TabularRegressorMLPMulti
+
+from .ts_model_ar import TimeSeriesModelAutoRegressive
+
 
 # =================================================================================================
 #  Time Series Model
 # =================================================================================================
-from .. import CVResults, ScoreMetric
-from .ts_model_ar import TimeSeriesModelAutoRegressive
-
-
 class TimeSeriesModelAutoRegressiveMLPMulti(TimeSeriesModelAutoRegressive):
     def __init__(self, signal_name: str, p: int, n: int, **kwargs):
 
