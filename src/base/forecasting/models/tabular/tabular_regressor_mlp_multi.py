@@ -34,6 +34,10 @@ class TabularRegressorMLPMulti(TabularRegressor):
 
         self._sub_cv = SubModelCrossValidation(self)
 
+    @property
+    def n_sub_models(self) -> int:
+        return self.n_targets
+
     # -------------------------------------------------------------------------
     #  Hyper-parameters
     # -------------------------------------------------------------------------
@@ -73,7 +77,7 @@ class SubModelCrossValidation:
     # -------------------------------------------------------------------------
     def __init__(self, regressor: TabularRegressorMLPMulti):
         self.regressor = regressor
-        self.results = None
+        self.results = dict()  # type: Dict[int, CVResults]
 
     # -------------------------------------------------------------------------
     #  Grid Search

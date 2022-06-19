@@ -50,7 +50,7 @@ class TimeSeriesModelAutoRegressive(TimeSeriesForecastModel):
         self.n = n
         self._avoid_training_nans = avoid_training_nans
 
-        self._cv = TimeSeriesRegressionCrossValidation(self)
+        self._cv = TimeSeriesAutoRegressiveCrossValidation(self)
 
     # -------------------------------------------------------------------------
     #  Fit & Predict
@@ -88,7 +88,7 @@ class TimeSeriesModelAutoRegressive(TimeSeriesForecastModel):
     #  Cross-Validation
     # -------------------------------------------------------------------------
     @property
-    def cv(self) -> TimeSeriesRegressionCrossValidation:
+    def cv(self) -> TimeSeriesAutoRegressiveCrossValidation:
         return self._cv
 
     # -------------------------------------------------------------------------
@@ -125,7 +125,7 @@ class TimeSeriesModelAutoRegressive(TimeSeriesForecastModel):
 # =================================================================================================
 #  Cross-Validation
 # =================================================================================================
-class TimeSeriesRegressionCrossValidation:
+class TimeSeriesAutoRegressiveCrossValidation:
 
     # -------------------------------------------------------------------------
     #  Constructor
