@@ -1,3 +1,10 @@
-from .ts_model import TimeSeriesForecastModel, TimeSeriesForecastModelAutoScaled
+from .ts_model import TimeSeriesForecastModel
+from .ts_model_ar import TimeSeriesModelAutoRegressive
+from .ts_model_ar_mlp import TimeSeriesModelAutoRegressiveMLP
+from .ts_model_ar_mlp_multi import TimeSeriesModelAutoRegressiveMLPMulti
+from .ts_model_ar_ols import TimeSeriesModelAutoRegressiveOLS
+from .ts_model_ar_pls import TimeSeriesModelAutoRegressivePLS
 from .ts_model_darts import TimeSeriesModelDarts
 from .ts_model_darts_arima import TimeSeriesModelDartsArima
+from .ts_model_naive_constant import TimeSeriesModelNaiveConstant
+from .ts_model_naive_mean import TimeSeriesModelNaiveMean
