@@ -1,20 +1,23 @@
+"""Base class for auto-regressive modeling"""
+
 from __future__ import annotations
 
 import math
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Set, Tuple, Union
 
 import numpy as np
 import pandas as pd
 
+from src.base.forecasting.models import TimeSeriesForecastModel
 from src.base.forecasting.models.tabular.tabular_regressor import CVResults, ScoreMetric, TabularRegressor
 from src.base.forecasting.models.time_series.helpers import build_toeplitz
-from src.base.forecasting.models.time_series.ts_model import TimeSeriesForecastModelAutoScaled
+from src.tools.math import remove_nan_rows
 
 
 # =================================================================================================
 #  TimeSeries model based on TabularRegressor
 # =================================================================================================
-class TimeSeriesModelRegression(TimeSeriesForecastModelAutoScaled):
+class TimeSeriesModelRegression(TimeSeriesForecastModel):
     """
     This class implements a n-step-ahead timeseries regression model.
         n-step-ahead: we forecast samples 0, ... n-1
@@ -27,14 +30,24 @@ class TimeSeriesModelRegression(TimeSeriesForecastModelAutoScaled):
     # -------------------------------------------------------------------------
     #  Constructor
     # -------------------------------------------------------------------------
-    def __init__(self, signal_name: str, regressor: TabularRegressor, avoid_training_nans: bool = False):
-        super().__init__(model_type=f"regression_{regressor.name}", signal_name=signal_name)
+    def __init__(
+        self, signal_name: str, p: int, n: int, regressor: TabularRegressor, avoid_training_nans: bool = False
+    ):
+        """
+        Constructor of an auto-regressive model using a user-provided tabular regressor.
+        :param signal_name: (str) signal name to forecast
+        :param p: (int) number of past samples to use as features in auto-regression
+        :param n: (int) number of future samples forecast by the tabular regressor
+        :param regressor: (TabularRegressor) regressor model.
+        :param avoid_training_nans: (bool) set to True if the regressor cannot cope well with NaNs and these need
+                                            to be removed (i.e. any row containing at least 1 NaN) from the dataset.
+        """
+        super().__init__(model_type=f"ar_{regressor.name}", signal_name=signal_name)
 
         self.regressor = regressor  # type: TabularRegressor
 
-        self.p = regressor.n_inputs
-        self.n = regressor.n_outputs
-
+        self.p = p
+        self.n = n
         self._avoid_training_nans = avoid_training_nans
 
         self._cv = TimeSeriesRegressionCrossValidation(self)
@@ -94,19 +107,9 @@ class TimeSeriesModelRegression(TimeSeriesForecastModelAutoScaled):
             # This should avoid confusing the regressor that we train on this dataset.
             # However, some regressors might want to have all data, especially if e.g.
             # only part of a y-row has NaNs with no NaNs in the corresponding x-row.
-            x, y = self._remove_nan(x, y)
+            x, y = remove_nan_rows(x, y)
 
         # --- return --------------------------------------
-        return x, y
-
-    @staticmethod
-    def _remove_nan(x: np.ndarray, y: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
-
-        rows_without_nan = [not (any(x_row) or any(y_row)) for x_row, y_row in zip(np.isnan(x), np.isnan(y))]
-
-        x = x[rows_without_nan]
-        y = y[rows_without_nan]
-
         return x, y
 
     def __build_features(self, ts: np.ndarray) -> np.ndarray:
@@ -134,16 +137,8 @@ class TimeSeriesRegressionCrossValidation:
     # -------------------------------------------------------------------------
     #  Parameters
     # -------------------------------------------------------------------------
-    def get_param_names(self) -> List[str]:
-        """Parameters that can be tuned using cross-validation."""
-        param_names = self.ts_model.regressor.cv.get_param_names()
-
-        # These cannot be tuned by cross-validation because they influence the evaluation criterion.
-        for p_name in ["n_inputs", "n_outputs"]:
-            if p_name in param_names:
-                param_names.remove(p_name)
-
-        return param_names
+    def get_tunable_params_names(self) -> Set[str]:
+        return self.ts_model.regressor.get_tunable_param_names()
 
     # -------------------------------------------------------------------------
     #  Grid Search
@@ -153,16 +148,12 @@ class TimeSeriesRegressionCrossValidation:
         training_data: pd.DataFrame,
         param_grid: Union[Dict, List[Dict]],
         score_metric: ScoreMetric,
-        n_splits: int = 5,
+        n_splits: int = 10,
         n_jobs: int = -1,
     ):
 
-        # --- learn scaling -------------------------------
-        self.ts_model.fit_scaling(training_data)
-        scaled_training_data = self.ts_model.scale_df(training_data)
-
         # --- construct training data ---------------------
-        x_train, y_train = self.ts_model.build_tabulated_data(scaled_training_data)
+        x_train, y_train = self.ts_model.build_tabulated_data(training_data)
 
         # --- tabular regressor cross-validation ----------
         self.ts_model.regressor.cv.grid_search(
