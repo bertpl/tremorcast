@@ -5,6 +5,7 @@ import numpy as np
 
 from src.applications.vedur_is import VedurHarmonicMagnitudes
 from src.projects.fagradalsfjall._project_settings import FILE_DATASET_SELECTION
+from src.tools.math import set_all_random_seeds
 
 
 # =================================================================================================
@@ -18,6 +19,9 @@ def create_datasets(
     non_linearity: float = 0.05,
     random_vertical_drift: float = 500,
 ) -> Tuple[VedurHarmonicMagnitudes, VedurHarmonicMagnitudes]:
+
+    # make dataset reproducible
+    set_all_random_seeds(1)
 
     # --- load original dataset ---------------------------
     with open(FILE_DATASET_SELECTION + ".pkl", "rb") as f:

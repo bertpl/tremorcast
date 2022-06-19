@@ -4,12 +4,13 @@ import matplotlib.pyplot as plt
 
 from src.applications.vedur_is import VedurHarmonicMagnitudes
 from src.base.forecasting.models import (
+    LrMaxCriterion,
     ScoreMetric,
-    TimeSeriesModelMultiStepOLS,
-    TimeSeriesModelMultiStepPLS,
+    TimeSeriesModelAutoRegressiveMLP,
+    TimeSeriesModelAutoRegressiveOLS,
+    TimeSeriesModelAutoRegressivePLS,
     TimeSeriesModelNaiveConstant,
     TimeSeriesModelNaiveMean,
-    TimeSeriesModelRegressionMLP,
 )
 from src.projects.fagradalsfjall._project_settings import FORECAST_SIGNAL_NAME
 from src.projects.fagradalsfjall.evaluate_models import evaluate_forecast_models
@@ -41,17 +42,17 @@ def test_mlp_models_grid_search_cv(n: int):
     data_train, data_test = get_data()
 
     # --- define model & grid -----------------------------
-    model = TimeSeriesModelRegressionMLP(FORECAST_SIGNAL_NAME, p=288, n=n)
+    model = TimeSeriesModelAutoRegressiveMLP(FORECAST_SIGNAL_NAME, p=288, n=n, n_seeds=2)
 
     param_grid = dict(
-        n_epochs=[1, 5, 10, 25, 50, 100, 200],
-        wd=[0.0, 0.001, 0.01, 0.1, 1.0, 10.0],
+        n_epochs=[1, 5, 10, 25, 50, 100],
+        wd=[0.0, 0.001, 0.01, 0.1, 1.0],
         n_hidden_layers=[1, 3, 5],
-        lr_max=["valley", "minimum", "aggressive"],
+        lr_max=[LrMaxCriterion.VALLEY, LrMaxCriterion.MINIMUM],
     )
 
     model.cv.grid_search(
-        training_data=data_train.to_dataframe(), param_grid=param_grid, score_metric=ScoreMetric.MAE, n_splits=5
+        training_data=data_train.to_dataframe(), param_grid=param_grid, score_metric=ScoreMetric.MAE, n_splits=10
     )
 
     model.cv.results.show_optimal_results()
@@ -80,9 +81,9 @@ def evaluate_models(data_train: VedurHarmonicMagnitudes, data_test: VedurHarmoni
     }
 
     earlier_models = {
-        "ar-192": TimeSeriesModelMultiStepOLS(FORECAST_SIGNAL_NAME, p=192, n=1),
-        "n-step-ols-288-288": TimeSeriesModelMultiStepOLS(FORECAST_SIGNAL_NAME, p=288, n=288),
-        "n-step-pls-288-288-7": TimeSeriesModelMultiStepPLS(FORECAST_SIGNAL_NAME, p=288, n=288, rank=7),
+        "ar-192": TimeSeriesModelAutoRegressiveOLS(FORECAST_SIGNAL_NAME, p=192, n=1),
+        "n-step-ols-288-288": TimeSeriesModelAutoRegressiveOLS(FORECAST_SIGNAL_NAME, p=288, n=288),
+        "n-step-pls-288-288-7": TimeSeriesModelAutoRegressivePLS(FORECAST_SIGNAL_NAME, p=288, n=288, n_components=7),
     }
 
     # --- cross-validation ------------------------------------
@@ -90,10 +91,13 @@ def evaluate_models(data_train: VedurHarmonicMagnitudes, data_test: VedurHarmoni
     # for n in [16, 32, 288]:
     for n in [288]:
 
-        cv_model = TimeSeriesModelRegressionMLP(FORECAST_SIGNAL_NAME, p=288, n=288)
+        cv_model = TimeSeriesModelAutoRegressiveMLP(FORECAST_SIGNAL_NAME, p=288, n=288, n_seeds=2)
 
         param_grid = dict(
-            n_epochs=[5, 10, 25, 50, 100], wd=[0.01, 0.1, 1.0, 10.0], n_hidden_layers=[5], lr_max=["aggressive"]
+            n_epochs=[5, 10, 25, 50, 100],
+            wd=[0.01, 0.1, 1.0, 10.0],
+            n_hidden_layers=[1],
+            lr_max=[LrMaxCriterion.AGGRESSIVE],
         )
 
         cv_model.cv.grid_search(
@@ -111,7 +115,9 @@ def evaluate_models(data_train: VedurHarmonicMagnitudes, data_test: VedurHarmoni
         # "16-step-mlp-single-cv": cv_models[16],
         # "32-step-mlp-single-manual": TimeSeriesModelRegressionMLP(FORECAST_SIGNAL_NAME, p=288, n=32, n_epochs=100),
         # "32-step-mlp-single-cv": cv_models[32],
-        "288-step-mlp-single-manual": TimeSeriesModelRegressionMLP(FORECAST_SIGNAL_NAME, p=288, n=288, n_epochs=100),
+        "288-step-mlp-single-manual": TimeSeriesModelAutoRegressiveMLP(
+            FORECAST_SIGNAL_NAME, p=288, n=288, n_epochs=100, n_seeds=10
+        ),
         "288-step-mlp-single-cv": cv_models[288],
     }
 
