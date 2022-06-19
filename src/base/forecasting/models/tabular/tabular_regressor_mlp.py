@@ -10,6 +10,19 @@ from .tabular_regressor_wrapper import TabularRegressorWrapper
 
 
 class TabularRegressorMLP(TabularRegressorWrapper):
+
+    # parameters to copy to MLP object right before fitting
+    MAPPED_PARAMETERS = [
+        "n_hidden_layers",
+        "layer_width",
+        "activation",
+        "lr_max",
+        "n_epochs",
+        "wd",
+        "n_seeds",
+        "show_progress",
+    ]
+
     def __init__(
         self,
         n_hidden_layers: int = 1,
@@ -53,8 +66,8 @@ class TabularRegressorMLP(TabularRegressorWrapper):
         self.n_seeds = n_seeds
 
     def fit(self, x: np.ndarray, y: np.ndarray, **fit_params) -> TabularRegressorMLP:
-        self.model.show_progress = self.show_progress  # make sure show_progress is set in MLP object
-        return super().fit(x, y, **fit_params)
+        super().fit(x, y, **fit_params)
+        return self
 
     @property
     def last_lr_max_value(self):

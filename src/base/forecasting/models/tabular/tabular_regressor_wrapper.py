@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 from enum import Enum, auto
-from typing import Optional
+from typing import Optional, Set
 
 import numpy as np
 from sklearn import pipeline
@@ -58,6 +60,22 @@ class TabularRegressorWrapper(TabularRegressor):
 
         # --- pipeline ------------------------------------
         self._pipeline = None
+
+    # -------------------------------------------------------------------------
+    #  PARAMETER MAPPING
+    # -------------------------------------------------------------------------
+    def get_mapped_params(self) -> Set[str]:
+        """Returns parameters that appear in both this and the embedded model and hence should be mapped."""
+        wrapper_params = set(list(self.get_params().keys()) + ["show_progress"])
+        model_params = set(self.model.get_params().keys())
+        return wrapper_params.intersection(model_params)
+
+    def set_params(self, **params) -> TabularRegressorWrapper:
+        """This implementation makes sure any params set to this object are mapped - if needed - to the submodel."""
+        super().set_params(**params)
+        for param in self.get_mapped_params():
+            setattr(self.model, param, getattr(self, param))
+        return self
 
     # -------------------------------------------------------------------------
     #  FIT & PREDICT
