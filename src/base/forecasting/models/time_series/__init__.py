@@ -1,1 +1,3 @@
 from .ts_model import TimeSeriesForecastModel, TimeSeriesForecastModelAutoScaled
+from .ts_model_darts import TimeSeriesModelDarts
+from .ts_model_darts_arima import TimeSeriesModelDartsArima
