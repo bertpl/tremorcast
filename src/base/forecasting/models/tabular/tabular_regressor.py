@@ -338,6 +338,9 @@ class TabularCrossValidation:
     ):
         """Use the sklearn class GridSearchCV to perform cross-validated grid-search over parameters."""
 
+        # --- remove NaNs ---------------------------------
+        x, y = remove_nan_rows(x, y)
+
         # --- perform grid search CV ----------------------
         param_set_list = self._materialize_param_grid(param_grid)
 
