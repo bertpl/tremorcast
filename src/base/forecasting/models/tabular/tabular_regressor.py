@@ -286,7 +286,7 @@ class CVResults:
         def summarize_losses(losses: List[float]) -> str:
             mean = np.mean(losses)
             std = np.std(losses)
-            return f"{mean:.3f} ± {std:.3f} <-- [{''.join([f'{x:.3f}'.ljust(10) for x in losses])}]"
+            return f"{mean:>8.3f} ± {std:<8.3f} <-- [{''.join([f'{x:>9.3f} ' for x in losses])}]"
 
         # --- all values for each param -------------------
         all_param_values = self.all_param_values()
