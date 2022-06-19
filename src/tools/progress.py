@@ -13,8 +13,15 @@ from .datetime import format_datetime, format_timedelta
 #  Fast.AI callback
 # =================================================================================================
 class ProgressCallbackTqdm(Callback):
+    def __init__(self, extra_msg: str = "", **kwargs):
+        self.extra_msg = extra_msg
+        super().__init__(**kwargs)
+
     def before_fit(self):
-        desc = f"  [{datetime.datetime.now().strftime('%Y-%m-%d - %H:%M:%S')}] - Training"
+        if self.extra_msg:
+            desc = f"  [{datetime.datetime.now().strftime('%Y-%m-%d - %H:%M:%S')}] [{self.extra_msg}] - Training"
+        else:
+            desc = f"  [{datetime.datetime.now().strftime('%Y-%m-%d - %H:%M:%S')}] - Training"
         self.tqdm = tqdm(total=self.n_epoch, desc=desc, file=sys.stdout, ncols=120)
 
     def before_epoch(self):
@@ -24,7 +31,7 @@ class ProgressCallbackTqdm(Callback):
         self.tqdm.close()
 
 
-def add_tqdm_callback(learner, enabled=True):
+def add_tqdm_callback(learner, enabled=True, extra_msg=""):
 
     try:
         if hasattr(learner, "progress"):
@@ -36,7 +43,7 @@ def add_tqdm_callback(learner, enabled=True):
         pass
 
     if enabled:
-        learner.add_cb(ProgressCallbackTqdm)
+        learner.add_cb(ProgressCallbackTqdm(extra_msg))
 
 
 def remove_tqdm_callback(learner):

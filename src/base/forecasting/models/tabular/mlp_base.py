@@ -3,9 +3,8 @@ from __future__ import annotations
 
 import math
 from enum import Enum, auto
-from typing import List, Optional, Union
+from typing import List, Optional, Tuple, Union
 
-import fastai
 import numpy as np
 import pandas as pd
 from fastai.callback.schedule import minimum, valley
@@ -13,11 +12,10 @@ from fastai.metrics import rmse
 from fastai.tabular.data import TabularDataLoaders
 from fastai.tabular.learner import TabularLearner
 from fastai.tabular.model import TabularModel
-from fastai.torch_core import Tensor
 from sklearn.base import BaseEstimator, RegressorMixin
 from torch.nn import ELU, SELU, ReLU
 
-from src.tools.math import remove_nan_rows
+from src.tools.math import remove_nan_rows, set_all_random_seeds
 from src.tools.progress import add_tqdm_callback, remove_tqdm_callback
 
 
@@ -64,6 +62,7 @@ class MLP(BaseEstimator, RegressorMixin):
         lr_max: Union[LrMaxCriterion, float] = LrMaxCriterion.MINIMUM,
         n_epochs: int = 100,
         wd: float = 1e-2,
+        n_seeds: int = 1,
         show_progress: bool = True,
     ):
 
@@ -74,6 +73,7 @@ class MLP(BaseEstimator, RegressorMixin):
         self.lr_max = lr_max
         self.n_epochs = n_epochs
         self.wd = wd
+        self.n_seeds = n_seeds
         self.show_progress = show_progress
 
         # other
@@ -93,23 +93,25 @@ class MLP(BaseEstimator, RegressorMixin):
     def fit(self, x: np.ndarray, y: np.ndarray, **fit_params) -> MLP:
 
         # --- init ----------------------------------------
+        if y.ndim == 1:
+            y = y.reshape((y.size, 1))
         x, y = remove_nan_rows(x, y)
         self._learn_dimensions(x, y)
-        self._initialize_nn(x, y)
 
         # --- determine lr_max ----------------------------
-        lr_max = self._determine_lr_max()
+        lr_max = self._determine_lr_max(x, y)
 
         # --- train ---------------------------------------
-        self._learn_one_cycle(lr_max)
-        while self._learner_weights_are_nan():
-            print(f"WARNING: training was unstable; reducing lr_max from {lr_max} to {lr_max/10}.")
-            lr_max = lr_max / 10
-            self._initialize_nn(x, y)
-            self._learn_one_cycle(lr_max)
+        self._train_best_of_n_seeds(x, y, lr_max)
 
         # --- return --------------------------------------
         return self
+
+    # -------------------------------------------------------------------------
+    #  Metrics
+    # -------------------------------------------------------------------------
+    def training_losses(self) -> np.ndarray:
+        return np.array(self._nn.recorder.losses)
 
     # -------------------------------------------------------------------------
     #  Predict
@@ -139,10 +141,10 @@ class MLP(BaseEstimator, RegressorMixin):
     def _get_layer_sizes(self) -> List[int]:
         return [self.layer_width] * self.n_hidden_layers
 
-    def _set_fastai_seed(self):
-        fastai.torch_core.set_seed(1, reproducible=True)
+    def _initialize_nn(self, x: np.ndarray, y: np.ndarray, seed: int):
 
-    def _initialize_nn(self, x: np.ndarray, y: np.ndarray):
+        # --- set seeds -----------------------------------
+        set_all_random_seeds(seed)
 
         # --- convert to df -------------------------------
         df = pd.DataFrame(data=np.concatenate([x, y], axis=1), columns=self._feature_names + self._target_names)
@@ -164,7 +166,7 @@ class MLP(BaseEstimator, RegressorMixin):
 
         self._nn = TabularLearner(data_loader, model, metrics=rmse, wd=self.wd)
 
-    def _determine_lr_max(self) -> float:
+    def _determine_lr_max(self, x: np.ndarray, y: np.ndarray) -> float:
 
         # --- determine lr_max ----------------------------
         if isinstance(self.lr_max, (float, int)):
@@ -176,7 +178,7 @@ class MLP(BaseEstimator, RegressorMixin):
 
             try:
 
-                self._set_fastai_seed()  # make as reproducible as possible
+                self._initialize_nn(x, y, seed=1_234)
                 lr_max = self._nn.lr_find(start_lr=1e-6, end_lr=1e3, suggest_funcs=[valley, minimum], show_plot=False)
 
                 if self.lr_max == LrMaxCriterion.VALLEY:
@@ -208,78 +210,57 @@ class MLP(BaseEstimator, RegressorMixin):
 
         return lr_max
 
-    def _learn_one_cycle(self, lr_max: float):
+    def _train_best_of_n_seeds(self, x: np.ndarray, y: np.ndarray, lr_max: float):
 
-        self._set_fastai_seed()  # make as reproducible as possible
+        # --- init ----------------------------------------
+        all_solutions = []  # type: List[Tuple[float, TabularLearner]]
+        all_rmses = []  # type: List[float]
 
-        add_tqdm_callback(self._nn, enabled=self.show_progress)
+        # --- train for n seeds ---------------------------
+        for seed in range(self.n_seeds):
+
+            self._learn_one_cycle_until_convergence(x, y, lr_max, seed)
+            final_rmse = self.training_losses()[-1]
+
+            all_solutions.append((final_rmse, self._nn))
+            all_rmses.append(final_rmse)
+
+        # --- select best solution -----------------------------------------
+        best_rmse = None  # type: Optional[float]
+        best_nn = None  # type: Optional[TabularLearner]
+
+        for rmse, nn in all_solutions:
+            if (best_rmse is None) or (rmse < best_rmse):
+                best_rmse = rmse
+                best_nn = nn
+
+        if self.show_progress:
+            if self.n_seeds > 1:
+                print(f"  Picked best nn of {self.n_seeds}: loss = {best_rmse} out of {all_rmses}")
+
+        self._nn = best_nn
+
+    def _learn_one_cycle_until_convergence(self, x: np.ndarray, y: np.ndarray, lr_max: float, seed: int):
+        """Runs _learn_one_cycle with decreasing values of lr_max until we converge."""
+
+        self.last_lr_max_value = None
+        while (self.last_lr_max_value is None) or self._learner_weights_are_nan():
+
+            self._initialize_nn(x, y, seed)
+            self._learn_one_cycle(lr_max, seed)
+
+            if self._learner_weights_are_nan():
+                print(f"WARNING: training was unstable; reducing lr_max from {lr_max} to {lr_max / 10}.")
+                lr_max = lr_max / 10
+
+    def _learn_one_cycle(self, lr_max: float, seed: int):
+
+        add_tqdm_callback(self._nn, enabled=self.show_progress, extra_msg=f"seed={seed}")
         self._nn.fit_one_cycle(self.n_epochs, lr_max=lr_max)
         remove_tqdm_callback(self._nn)
 
-        self.last_lr_max = lr_max
+        self.last_lr_max_value = lr_max
 
     def _learner_weights_are_nan(self) -> bool:
         all_params = [p.T.detach().numpy() for p in self._nn.parameters()]
         return any([any(np.isnan(arr.flatten())) or any(np.isinf(arr.flatten())) for arr in all_params])
-
-
-# # =================================================================================================
-# #  Multi-MLP
-# # =================================================================================================
-# class MultiMLP(BaseEstimator, RegressorMixin):
-#
-#     # -------------------------------------------------------------------------
-#     #  Constructor
-#     # -------------------------------------------------------------------------
-#     def __init__(self, n_targets: int):
-#         self.n_targets = n_targets
-#         self.sub_models = [MLP() for i in range(n_targets)]   # type: List[MLP]
-#         self.show_progress = True
-#
-#     # -------------------------------------------------------------------------
-#     #  Hyper-parameters
-#     # -------------------------------------------------------------------------
-#     def set_sub_params(self, i_sub_models: List[int] = None, **params):
-#         """Sets the provided keywords arguments as parameters in each sub-model"""
-#         if i_sub_models is None:
-#             for m in self.sub_models:
-#                 m.set_params(**params)
-#         else:
-#             for i in i_sub_models:
-#                 self.sub_models[i].set_params(**params)
-#
-#     # -------------------------------------------------------------------------
-#     #  Cross-Validation
-#     # -------------------------------------------------------------------------
-#     @property
-#     def sub_cv(self) -> SubModelCrossValidation:
-#         return self._sub_cv
-#
-#     # -------------------------------------------------------------------------
-#     #  Fit
-#     # -------------------------------------------------------------------------
-#     def fit(self, x: np.ndarray, y: np.ndarray, **fit_params) -> MultiMLP:
-#
-#         # --- init -----------------------------------------
-#         n_targets = y.shape[1]
-#         self.sub_models = [MLP() for i in range(n_targets)]
-#
-#         # --- fit sub-models -------------------------------
-#         for i, sub_model in enumerate(self.sub_models):
-#             sub_model.fit(x, y[:, [i]], **fit_params)
-#
-#         # --- return ---------------------------------------
-#         return self
-#
-#
-# # =================================================================================================
-# #  Cross Validation
-# # =================================================================================================
-# class SubModelCrossValidation:
-#
-#     # -------------------------------------------------------------------------
-#     #  Constructor
-#     # -------------------------------------------------------------------------
-#     def __init__(self, regressor: MultiMLP):
-#         self.regressor = regressor
-#         self.results = None

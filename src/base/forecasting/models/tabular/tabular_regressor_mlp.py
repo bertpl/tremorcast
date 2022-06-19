@@ -18,6 +18,7 @@ class TabularRegressorMLP(TabularRegressorWrapper):
         lr_max: Union[LrMaxCriterion, float] = LrMaxCriterion.MINIMUM,
         n_epochs: int = 100,
         wd: float = 1e-2,
+        n_seeds: int = 1,
         feature_selector: Optional[FeatureSelector] = None,
         **kwargs,
     ):
@@ -35,6 +36,7 @@ class TabularRegressorMLP(TabularRegressorWrapper):
                 lr_max=lr_max,
                 n_epochs=n_epochs,
                 wd=wd,
+                n_seeds=n_seeds,
             ),
             remove_nans_before_fit=False,
             feature_selector=feature_selector,
@@ -48,6 +50,7 @@ class TabularRegressorMLP(TabularRegressorWrapper):
         self.lr_max = lr_max
         self.n_epochs = n_epochs
         self.wd = wd
+        self.n_seeds = n_seeds
 
     def fit(self, x: np.ndarray, y: np.ndarray, **fit_params) -> TabularRegressorMLP:
         self.model.show_progress = self.show_progress  # make sure show_progress is set in MLP object

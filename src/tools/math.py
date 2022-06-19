@@ -1,6 +1,8 @@
 import math
-from typing import List, Tuple
+from hashlib import shake_256
+from typing import Any, List, Tuple
 
+import fastai
 import numpy as np
 from scipy import optimize
 
@@ -63,3 +65,27 @@ def remove_nan_rows(x: np.ndarray, y: np.ndarray) -> Tuple[np.ndarray, np.ndarra
     y = y[rows_without_nan]
 
     return x, y
+
+
+# =================================================================================================
+#  Random
+# =================================================================================================
+def set_all_random_seeds(value: Any):
+    """Sets all seeds (random, numpy, torch) based on the provided hashable value, which is hashed into a seed."""
+
+    seed = any_to_int_hash(value)
+    fastai.torch_core.set_seed(seed, reproducible=True)  # make initialization as reproducible as possible
+
+
+def any_to_int_hash(value: Any) -> int:
+    """hashes any object into a non-trivial integer, also integer values"""
+
+    # --- value -> seed -----------------------------------
+    source = str((type(value).__name__, str(value)))
+
+    h = shake_256()
+    h.update(bytes(source, "utf-8"))
+    seed = int.from_bytes(h.digest(8), "little", signed=True)
+
+    # --- return ------------------------------------------
+    return seed
