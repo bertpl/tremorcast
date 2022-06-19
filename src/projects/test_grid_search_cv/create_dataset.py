@@ -3,6 +3,8 @@ from typing import Tuple
 
 import numpy as np
 
+from src.tools.math import set_all_random_seeds
+
 
 # =================================================================================================
 #  Enum & main function
@@ -16,6 +18,9 @@ def create_dataset(
     dataset_type: DataSetType, n: int, x_noise: float = 0.0, y_noise: float = 0.1, **kwargs
 ) -> Tuple[np.ndarray, np.ndarray]:
     """returns (x, y) based on requested dataset type & other parameters"""
+
+    # --- make deterministic ------------------------------
+    set_all_random_seeds(("create_dataset", dataset_type, n, x_noise, y_noise))
 
     # --- get dataset -------------------------------------
     if dataset_type == DataSetType.LINEAR:
@@ -44,9 +49,9 @@ def _dataset_linear(n: int) -> Tuple[np.ndarray, np.ndarray]:
     return x, y
 
 
-def _dataset_sine(n: int, c: float = 2.0) -> Tuple[np.ndarray, np.ndarray]:
+def _dataset_sine(n: int, c: float = 2.0, y_scale: float = 3.0) -> Tuple[np.ndarray, np.ndarray]:
 
     x = np.linspace(-1.0, 1.0, n).reshape(n, 1)
-    y = np.sin(c * x)
+    y = y_scale * np.sin(c * x)
 
     return x, y

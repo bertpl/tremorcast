@@ -1,8 +1,13 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-from src.base.forecasting.models.tabular.legacy.tabular_regressor_mlp import TabularRegressorMLP
-from src.base.forecasting.models.tabular.tabular_regressor import ScoreMetric
+from src.base.forecasting.models import (
+    Activation,
+    LrMaxCriterion,
+    ScoreMetric,
+    TabularRegressorMLP,
+    TabularRegressorOLS,
+)
 
 from .create_dataset import DataSetType, create_dataset
 
@@ -13,11 +18,11 @@ def test_grid_search_cv():
     x_train, y_train = create_dataset(DataSetType.SINE, n=1000, c=7.0)
 
     # --- settings ----------------------------------------
-    param_grid = {"wd": [1e-5, 1e-4, 1e-3, 1e-2, 1e-1], "n_epochs": [25, 50, 100]}
+    param_grid = {"wd": [1e-4, 1e-3, 1e-2, 1e-1], "n_epochs": [10, 20, 50], "n_hidden_layers": [5]}
     score_metric = ScoreMetric.MAE
 
     # --- actual cv ---------------------------------------
-    mlp = TabularRegressorMLP(n_inputs=1, n_outputs=1, n_hidden_layers=3)
+    mlp = TabularRegressorMLP(n_hidden_layers=3, n_seeds=3, n_epochs=20)
     mlp.cv.grid_search(x_train, y_train, param_grid, score_metric, n_jobs=-1, shuffle_data=True, n_splits=10)
     # mlp.fit(x_train, y_train)
 
