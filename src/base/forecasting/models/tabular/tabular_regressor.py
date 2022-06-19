@@ -294,6 +294,7 @@ class CVResults:
         # --- process parameter names ---------------------
         param_names = sorted(self.best_result.params.keys())
         max_param_len = max([len(pn) for pn in param_names])
+        max_value_len = max([len(str(self.best_result.params[pn])) for pn in param_names])
 
         # --- show results --------------------------------
         print("-" * 80)
@@ -305,7 +306,7 @@ class CVResults:
             all_values = all_param_values[param_name]
 
             print(
-                f"  {param_name: <{max_param_len+1}}: {str(param_value): <18}  "
+                f"  {param_name: <{max_param_len+1}}: {str(param_value): <{max_value_len+2}} "
                 + "<-- ["
                 + ", ".join([str(v) for v in all_values])
                 + "]"
