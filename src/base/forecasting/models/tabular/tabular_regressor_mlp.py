@@ -10,19 +10,6 @@ from .tabular_regressor_wrapper import TabularRegressorWrapper
 
 
 class TabularRegressorMLP(TabularRegressorWrapper):
-
-    # parameters to copy to MLP object right before fitting
-    MAPPED_PARAMETERS = [
-        "n_hidden_layers",
-        "layer_width",
-        "activation",
-        "lr_max",
-        "n_epochs",
-        "wd",
-        "n_seeds",
-        "show_progress",
-    ]
-
     def __init__(
         self,
         n_hidden_layers: int = 1,
