@@ -213,7 +213,7 @@ class MLP(BaseEstimator, RegressorMixin):
     def _train_best_of_n_seeds(self, x: np.ndarray, y: np.ndarray, lr_max: float):
 
         # --- init ----------------------------------------
-        all_solutions = []  # type: List[Tuple[float, TabularLearner]]
+        all_solutions = []  # type: List[Tuple[float, float, TabularLearner]]
         all_rmses = []  # type: List[float]
 
         # --- train for n seeds ---------------------------
@@ -222,17 +222,18 @@ class MLP(BaseEstimator, RegressorMixin):
             self._learn_one_cycle_until_convergence(x, y, lr_max, seed)
             final_rmse = self.training_losses()[-1]
 
-            all_solutions.append((final_rmse, self._nn))
+            all_solutions.append((final_rmse, self.last_lr_max_value, self._nn))
             all_rmses.append(final_rmse)
 
         # --- select best solution -----------------------------------------
         best_rmse = None  # type: Optional[float]
         best_nn = None  # type: Optional[TabularLearner]
 
-        for rmse, nn in all_solutions:
+        for rmse, last_lr_max_value, nn in all_solutions:
             if (best_rmse is None) or (rmse < best_rmse):
                 best_rmse = rmse
                 best_nn = nn
+                self.last_lr_max_value = last_lr_max_value
 
         if self.show_progress:
             if self.n_seeds > 1:
