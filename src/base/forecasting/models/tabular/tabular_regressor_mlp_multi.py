@@ -84,7 +84,7 @@ class SubModelCrossValidation:
         y: np.ndarray,
         param_grid: Union[dict, List[dict]],
         score_metric: ScoreMetric,
-        n_splits: int = 5,
+        n_splits: int = 10,
         shuffle_data: bool = False,
         n_jobs: int = -1,
         i_sub_models: List[int] = None,  # indices of sub-models for which to perform CV

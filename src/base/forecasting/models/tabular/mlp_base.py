@@ -64,6 +64,7 @@ class MLP(BaseEstimator, RegressorMixin):
         lr_max: Union[LrMaxCriterion, float] = LrMaxCriterion.MINIMUM,
         n_epochs: int = 100,
         wd: float = 1e-2,
+        show_progress: bool = True,
     ):
 
         # set parameters
@@ -73,10 +74,10 @@ class MLP(BaseEstimator, RegressorMixin):
         self.lr_max = lr_max
         self.n_epochs = n_epochs
         self.wd = wd
+        self.show_progress = show_progress
 
         # other
         self.last_lr_max_value = None  # type: Optional[float]
-        self.show_progress = True
 
         # internal
         self._n_features = None  # type; Optional[int]

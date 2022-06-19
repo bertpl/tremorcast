@@ -76,14 +76,19 @@ class TabularRegressor(BaseEstimator, RegressorMixin):
         param_names = set(self.get_params().keys())
         return param_names.difference([CV_METADATA_PARAM])
 
-    def set_params(self, **params):
-        super().set_params(**params)
+    def set_params(self, **params) -> TabularRegressor:
+        return super().set_params(**params)
 
     # -------------------------------------------------------------------------
     #  Fit
     # -------------------------------------------------------------------------
     def fit(self, x: np.ndarray, y: np.ndarray, **fit_params) -> TabularRegressor:
         """Fit model based on (m, n_inputs) array x and (m, n_outputs) array y."""
+
+        # fix flattened matrices
+        if y.ndim == 1:
+            y = y.reshape((y.size, 1))
+
         timer = ProgressTimer()
         if self.cv_active():
             self.cv.pre_fit_progress(self.get_cv_metadata())
@@ -311,8 +316,6 @@ class CVResults:
 
 class TabularCrossValidation:
 
-    NON_TUNABLE_PARAMETERS = {CV_METADATA_PARAM}  # type: Set[str]
-
     # -------------------------------------------------------------------------
     #  Constructor
     # -------------------------------------------------------------------------
@@ -329,7 +332,7 @@ class TabularCrossValidation:
         y: np.ndarray,
         param_grid: Union[dict, List[dict]],
         score_metric: ScoreMetric,
-        n_splits: int = 5,
+        n_splits: int = 10,
         shuffle_data: bool = False,
         n_jobs: int = -1,
     ):
@@ -400,7 +403,7 @@ class TabularCrossValidation:
         params_to_be_set = {
             param_name: param_value
             for param_name, param_value in grid_search.best_params_.items()
-            if param_name not in tunable_param_names
+            if param_name in tunable_param_names
         }
         self.regressor.set_params(**params_to_be_set)
 

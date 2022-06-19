@@ -56,33 +56,44 @@ class TabularRegressorWrapper(TabularRegressor):
         self.target_scaler = target_scaler
         self.feature_selector = feature_selector
 
-        # --- build actual pipeline -----------------------
-        if feature_selector or feature_scaler:
-            pipeline_steps = []
-
-            if feature_selector:
-                pipeline_steps.append(("feature_selector", feature_selector))
-
-            if feature_scaler:
-                pipeline_steps.append(("feature_scaling", feature_scaler.get_scaler()))
-
-            pipeline_steps.append(("model", model))
-
-            model = pipeline.Pipeline(steps=pipeline_steps)
-
-        if target_scaler:
-            model = TransformedTargetRegressor(
-                regressor=model,
-                transformer=target_scaler.get_scaler(),
-            )
-
-        self._pipeline = model
+        # --- pipeline ------------------------------------
+        self._pipeline = None
 
     # -------------------------------------------------------------------------
     #  FIT & PREDICT
     # -------------------------------------------------------------------------
     def _fit(self, x: np.ndarray, y: np.ndarray, **fit_params):
+        self._build_pipeline()
         self._pipeline.fit(x, y, **fit_params)
 
     def predict(self, x: np.ndarray, **predict_params) -> np.ndarray:
         return self._pipeline.predict(x, **predict_params)
+
+    # -------------------------------------------------------------------------
+    #  INTERNAL
+    # -------------------------------------------------------------------------
+    def _build_pipeline(self):
+        """Sets the _pipeline attribute based on the other parameters of the model."""
+
+        model = self.model
+
+        if self.feature_selector or self.feature_scaler:
+            pipeline_steps = []
+
+            if self.feature_selector:
+                pipeline_steps.append(("feature_selector", self.feature_selector))
+
+            if self.feature_scaler:
+                pipeline_steps.append(("feature_scaling", self.feature_scaler.get_scaler()))
+
+            pipeline_steps.append(("model", self.model))
+
+            model = pipeline.Pipeline(steps=pipeline_steps)
+
+        if self.target_scaler:
+            model = TransformedTargetRegressor(
+                regressor=model,
+                transformer=self.target_scaler.get_scaler(),
+            )
+
+        self._pipeline = model
