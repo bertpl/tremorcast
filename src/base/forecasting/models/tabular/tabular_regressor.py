@@ -14,6 +14,7 @@ from sklearn.model_selection import GridSearchCV, KFold
 
 from src.tools.datetime import estimate_eta, format_datetime, format_timedelta
 from src.tools.math import remove_nan_rows
+from src.tools.misc import sort_any
 from src.tools.progress import ProgressTimer
 
 CV_METADATA_PARAM = "cv_metadata"
@@ -223,7 +224,7 @@ class CVResults:
     def all_param_values(self) -> Dict:
         """Returns dictionary with all param_names & corresponding values in this cv_result."""
         return {
-            param_name: sorted({cv_result.params[param_name] for cv_result in self.all_results})
+            param_name: sort_any({cv_result.params[param_name] for cv_result in self.all_results})
             for param_name in sorted(
                 {param_name for cv_result in self.all_results for param_name in cv_result.params.keys()}
             )
