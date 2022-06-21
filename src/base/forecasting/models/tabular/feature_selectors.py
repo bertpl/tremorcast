@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Tuple
 
 import numpy as np
 from sklearn.base import BaseEstimator, TransformerMixin
@@ -42,6 +42,26 @@ class FeatureSelector(TransformerMixin, BaseEstimator):
         features presented to this transformers input.
         """
         raise NotImplementedError
+
+    # -------------------------------------------------------------------------
+    #  Sorting
+    # -------------------------------------------------------------------------
+    def __gt__(self, other) -> bool:
+        return self.summary_stats() > other.summary_stats()
+
+    def __eq__(self, other) -> bool:
+        pass
+
+    def summary_stats(self) -> Tuple[int, int, int, float]:
+        if self._selected_indices:
+            return (
+                len(self._selected_indices),
+                min(self._selected_indices),
+                max(self._selected_indices),
+                float(np.mean(self._selected_indices)),
+            )
+        else:
+            return 0, 0, 0, 0
 
 
 # =================================================================================================
