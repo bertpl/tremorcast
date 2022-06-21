@@ -31,7 +31,7 @@ class FeatureSelector(TransformerMixin, BaseEstimator):
     #  Misc
     # -------------------------------------------------------------------------
     def __str__(self):
-        return f"FeatureSelector: {str(self._selected_indices)}"
+        return f"features {str(self._selected_indices)}"
 
     # -------------------------------------------------------------------------
     #  Abstract methods
@@ -47,21 +47,15 @@ class FeatureSelector(TransformerMixin, BaseEstimator):
     #  Sorting
     # -------------------------------------------------------------------------
     def __gt__(self, other) -> bool:
-        return self.summary_stats() > other.summary_stats()
+        return self.sorting_stats() > other.sorting_stats()
 
     def __eq__(self, other) -> bool:
-        pass
+        return isinstance(other, self.__class__) and (tuple(self._selected_indices) == tuple(other._selected_indices))
 
-    def summary_stats(self) -> Tuple[int, int, int, float]:
-        if self._selected_indices:
-            return (
-                len(self._selected_indices),
-                min(self._selected_indices),
-                max(self._selected_indices),
-                float(np.mean(self._selected_indices)),
-            )
-        else:
-            return 0, 0, 0, 0
+    def sorting_stats(self) -> Tuple[int, ...]:
+        stats = [len(self._selected_indices)]
+        stats.extend(self._selected_indices)
+        return tuple(stats)
 
 
 # =================================================================================================
@@ -80,7 +74,7 @@ class FeatureSelector_ExponentialSpacing(FeatureSelector):
         super().__init__()
 
         self.n_selected_features = n_selected_features  # None = all features; should be >0
-        self.first_index = first_index  # first index to select  (will always be selected)
+        self.first_index = first_index or 0  # first index to select  (will always be selected)
         self.last_index = last_index  # last index to select  (will always be selected if n_selected_features > 1)
         self.reverse = reverse  # if True, exponential spacing works top-down instead of bottom-up
 
@@ -117,4 +111,22 @@ class FeatureSelector_ExponentialSpacing(FeatureSelector):
         return indices
 
     def __str__(self):
-        return f"FeatureSelector: {self.n_selected_features} in [{self.first_index}, {self.last_index}]"
+        n_features = len(self._selected_indices)
+        if n_features == 0:
+            return "0 features"
+        elif n_features < 5:
+            return f"features {self._selected_indices} (={n_features})"
+        else:
+            first_index = min(self._selected_indices)
+            last_index = max(self._selected_indices)
+
+            if max(self._selected_indices) - min(self._selected_indices) == n_features - 1:
+
+                return f"features {first_index} to {last_index} (={n_features})"
+
+            else:
+
+                if not self.reverse:
+                    return f"{n_features} features exp spaced {first_index} --> {last_index}"
+                else:
+                    return f"{n_features} features exp spaced {last_index} --> {first_index}"
