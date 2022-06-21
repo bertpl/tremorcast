@@ -399,16 +399,22 @@ def plot_cv_results(
     # --- create figure -----------------------------------
     fig, ax = plt.subplots(nrows=1, ncols=1)  # type: plt.Figure, plt.Axes
 
+    # --- where to plot? ------
+    if all([isinstance(x, (int, float)) for x in param_values]):
+        x_values = param_values
+    else:
+        x_values = list(range(len(param_values)))
+
     # --- uncertainty bands ---
     ax.fill_between(
-        param_values,
+        x_values,
         training_loss_mean - training_loss_std,
         training_loss_mean + training_loss_std,
         color="r",
         alpha=0.1,
     )
     ax.fill_between(
-        param_values,
+        x_values,
         validation_loss_mean - validation_loss_std,
         validation_loss_mean + validation_loss_std,
         color="g",
@@ -416,8 +422,8 @@ def plot_cv_results(
     )
 
     # --- actual lines ---
-    h_train = ax.plot(param_values, training_loss_mean, "r-x")
-    h_val = ax.plot(param_values, validation_loss_mean, "g-x")
+    h_train = ax.plot(x_values, training_loss_mean, "r-x")
+    h_val = ax.plot(x_values, validation_loss_mean, "g-x")
 
     # --- decorate ---
     ax.grid(visible=True)
@@ -427,7 +433,7 @@ def plot_cv_results(
     ax.set_xlabel(x_label)
     if log_x_scale:
         ax.set_xscale("log")
-    ax.set_xticks(param_values)
+    ax.set_xticks(x_values)
     ax.set_xticklabels([str(pv) for pv in param_values])
 
     ax.set_ylabel("MAE")
