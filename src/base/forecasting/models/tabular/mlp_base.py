@@ -62,6 +62,7 @@ class MLP(BaseEstimator, RegressorMixin):
         lr_max: Union[LrMaxCriterion, float] = LrMaxCriterion.MINIMUM,
         n_epochs: int = 100,
         wd: float = 1e-2,
+        dropout: float = 0.0,
         n_seeds: int = 1,
         show_progress: bool = True,
     ):
@@ -73,6 +74,7 @@ class MLP(BaseEstimator, RegressorMixin):
         self.lr_max = lr_max
         self.n_epochs = n_epochs
         self.wd = wd
+        self.dropout = dropout
         self.n_seeds = n_seeds
         self.show_progress = show_progress
 
@@ -229,6 +231,7 @@ class MLP(BaseEstimator, RegressorMixin):
             n_cont=self._n_features,
             out_sz=self._n_targets,
             layers=[self.layer_width] * self.n_hidden_layers,
+            ps=[self.dropout] * self.n_hidden_layers,
             act_cls=self.activation.get_activation(),
         )
 

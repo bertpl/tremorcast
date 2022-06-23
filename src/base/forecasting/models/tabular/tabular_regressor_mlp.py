@@ -18,6 +18,7 @@ class TabularRegressorMLP(TabularRegressorWrapper):
         lr_max: Union[LrMaxCriterion, float] = LrMaxCriterion.MINIMUM,
         n_epochs: int = 100,
         wd: float = 1e-2,
+        dropout: float = 0.0,
         n_seeds: int = 1,
         feature_selector: Optional[FeatureSelector] = None,
         **kwargs,
@@ -36,6 +37,7 @@ class TabularRegressorMLP(TabularRegressorWrapper):
                 lr_max=lr_max,
                 n_epochs=n_epochs,
                 wd=wd,
+                dropout=dropout,
                 n_seeds=n_seeds,
             ),
             feature_selector=feature_selector,
@@ -49,6 +51,7 @@ class TabularRegressorMLP(TabularRegressorWrapper):
         self.lr_max = lr_max
         self.n_epochs = n_epochs
         self.wd = wd
+        self.dropout = dropout
         self.n_seeds = n_seeds
 
     def fit(self, x: np.ndarray, y: np.ndarray, **fit_params) -> TabularRegressorMLP:
