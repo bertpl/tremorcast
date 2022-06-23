@@ -9,15 +9,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from src.base.forecasting.evaluation.cross_validation import ParamSelectionMethod
-from src.base.forecasting.models import (
-    ScoreMetric,
-    TimeSeriesModelMultiStepOLS,
-    TimeSeriesModelMultiStepPLS,
-    TimeSeriesModelNaiveConstant,
-    TimeSeriesModelNaiveMean,
-    TimeSeriesModelRegressionMLP,
-)
+from src.base.forecasting.models import FeatureSelector, LrMaxCriterion, ScoreMetric, TimeSeriesModelAutoRegressiveMLP
 from src.projects.fagradalsfjall.evaluate_models import get_dataset_train
 from src.tools.matplotlib import plot_style_matplotlib_default
 
@@ -38,7 +30,7 @@ class Sweep(Enum):
     N_EPOCHS_SHALLOW = auto()
     N_EPOCHS_DEEP = auto()
     WD = auto()
-    P = auto()
+    LAGS = auto()
     LAYER_WIDTH = auto()
     N_LAYERS = auto()
 
@@ -159,7 +151,7 @@ def blog_6_1_mlp_single_grid_search_plots(n: int):
 class SweepSettings:
     sweep: Sweep
     n: int
-    model: TimeSeriesModelRegressionMLP
+    model: TimeSeriesModelAutoRegressiveMLP
     param_grid: dict
     grid_search_kwargs: dict
     param_name: str
@@ -177,7 +169,7 @@ def get_cv_settings_1d(sweep: Sweep, n: int) -> SweepSettings:
     """
 
     # --- cv_kwargs ---------------------------------------
-    cv_kwargs = dict(n_splits=5, n_jobs=-1, score_metric=ScoreMetric.MAE)
+    cv_kwargs = dict(n_splits=10, n_jobs=-1, score_metric=ScoreMetric.MAE)
 
     # --- misc settings -----------------------------------
     log_x_scale = True
@@ -188,15 +180,15 @@ def get_cv_settings_1d(sweep: Sweep, n: int) -> SweepSettings:
 
     # larger n seems to benefit from larger n_epochs without risk of overfitting or instability
     if n == 1:
-        nominal_lr_max_method = "aggressive"
+        nominal_lr_max_method = LrMaxCriterion.AGGRESSIVE
         nominal_n_epochs = 100
     else:
-        nominal_lr_max_method = "minimum"
+        nominal_lr_max_method = LrMaxCriterion.MINIMUM
         nominal_n_epochs = 50
 
     # default parameters
     cv_param_grid = {
-        "input_selection_first_n": [16],
+        "feature_selector": [FeatureSelector.first(16)],
         "n_hidden_layers": [3],
         "layer_width": [100],
         "wd": [0.1],
@@ -215,22 +207,22 @@ def get_cv_settings_1d(sweep: Sweep, n: int) -> SweepSettings:
         param_name = "n_epochs"
         sub_title = "wd=1.0"
     elif sweep == Sweep.N_EPOCHS_LR_MAX_VALLEY:
-        cv_param_grid["lr_max"] = ["valley"]
+        cv_param_grid["lr_max"] = [LrMaxCriterion.VALLEY]
         cv_param_grid["n_epochs"] = [1, 2, 5, 10, 20, 50, 100, 200, 500]
         param_name = "n_epochs"
         sub_title = "lr_max='valley'"
     elif sweep == Sweep.N_EPOCHS_LR_MAX_INTERMEDIATE:
-        cv_param_grid["lr_max"] = ["intermediate"]
+        cv_param_grid["lr_max"] = [LrMaxCriterion.INTERMEDIATE]
         cv_param_grid["n_epochs"] = [1, 2, 5, 10, 20, 50, 100, 200, 500]
         param_name = "n_epochs"
         sub_title = "lr_max='intermediate'"
     elif sweep == Sweep.N_EPOCHS_LR_MAX_MINIMUM:
-        cv_param_grid["lr_max"] = ["minimum"]
+        cv_param_grid["lr_max"] = [LrMaxCriterion.MINIMUM]
         cv_param_grid["n_epochs"] = [1, 2, 5, 10, 20, 50, 100, 200, 500]
         param_name = "n_epochs"
         sub_title = "lr_max='minimum'"
     elif sweep == Sweep.N_EPOCHS_LR_MAX_AGGRESSIVE:
-        cv_param_grid["lr_max"] = ["aggressive"]
+        cv_param_grid["lr_max"] = [LrMaxCriterion.AGGRESSIVE]
         cv_param_grid["n_epochs"] = [1, 2, 5, 10, 20, 50, 100, 200, 500]
         param_name = "n_epochs"
         sub_title = "lr_max='aggressive'"
@@ -247,10 +239,16 @@ def get_cv_settings_1d(sweep: Sweep, n: int) -> SweepSettings:
     elif sweep == Sweep.WD:
         cv_param_grid["wd"] = sorted([a * b for a, b in itertools.product([1, 2, 5], [0.001, 0.01, 0.1, 1, 10])])
         param_name = "wd"
-    elif sweep == Sweep.P:
-        cv_param_grid["input_selection_first_n"] = [4, 8, 12, 16, 24, 32, 48, 64, 96, 128, 192, 288]
-        param_name = "input_selection_first_n"
-        x_label = "p"
+    elif sweep == Sweep.LAGS:
+        cv_param_grid["feature_selector"] = [
+            FeatureSelector.first(n_inputs) for n_inputs in [4, 8, 16, 32, 64, 128, 192, 288]
+        ] + [
+            FeatureSelector.exp_spaced(first_index=0, last_index=horizon - 1, n_features=16)
+            for horizon in [32, 64, 128, 192, 288]
+        ]
+        param_name = "feature_selector"
+        x_label = "lags used as features"
+        log_x_scale = False
     elif sweep == Sweep.LAYER_WIDTH:
         cv_param_grid["layer_width"] = [10, 20, 50, 75, 100, 150, 200, 500, 1000]
         param_name = "layer_width"
@@ -265,10 +263,11 @@ def get_cv_settings_1d(sweep: Sweep, n: int) -> SweepSettings:
         x_label = param_name
 
     # --- model -------------------------------------------
-    model = TimeSeriesModelRegressionMLP(
+    model = TimeSeriesModelAutoRegressiveMLP(
         signal_name=FORECAST_SIGNAL_NAME,
         n=n,
-        p=max(cv_param_grid["input_selection_first_n"]),
+        p=max(fs.last_index + 1 for fs in cv_param_grid["feature_selector"]),
+        n_seeds=3,
     )
 
     # --- return ------------------------------------------
@@ -285,27 +284,27 @@ def get_cv_settings_1d(sweep: Sweep, n: int) -> SweepSettings:
     )
 
 
-def get_cv_settings_full(n: int) -> Tuple[TimeSeriesModelRegressionMLP, dict, dict]:
+def get_cv_settings_full(n: int) -> Tuple[TimeSeriesModelAutoRegressiveMLP, dict, dict]:
 
     # --- model -------------------------------------------
-    model = TimeSeriesModelRegressionMLP(
-        signal_name=FORECAST_SIGNAL_NAME,
-        n=n,
-        p=32,
-    )
+    model = TimeSeriesModelAutoRegressiveMLP(signal_name=FORECAST_SIGNAL_NAME, n=n, p=32, n_seeds=3)
 
     # --- param grid --------------------------------------
     param_grid = {
         "n_hidden_layers": [1, 2, 3],
         "layer_width": [100],
-        "input_selection_first_n": [4, 8, 16, 32],
-        "wd": [0.001, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1.0, 2.0],
-        "n_epochs": [10, 20, 50, 100, 200],
-        "lr_max": ["minimum", "aggressive"],
+        "feature_selector": [FeatureSelector.first(n_inputs) for n_inputs in [4, 8, 16, 32, 64, 128, 192]]
+        + [
+            FeatureSelector.exp_spaced(first_index=0, last_index=horizon - 1, n_features=16)
+            for horizon in [32, 64, 128, 192]
+        ],
+        "wd": [0.001, 0.01, 0.03, 0.1, 0.3, 1.0, 3.0],
+        "n_epochs": [10, 30, 100],
+        "lr_max": [LrMaxCriterion.MINIMUM, LrMaxCriterion.AGGRESSIVE],
     }
 
     # --- grid search arguments ---------------------------
-    grid_search_kwargs = dict(n_splits=5, score_metric=ScoreMetric.MAE)
+    grid_search_kwargs = dict(n_splits=10, score_metric=ScoreMetric.MAE)
 
     # --- return ------------------------------------------
     return model, param_grid, grid_search_kwargs
@@ -345,7 +344,7 @@ def plot_sweep_result(sweep: Sweep, n: int):
     # --- load model --------------------------------------
     model_filename = get_filename_1d_sweep_model(sweep, n)
     with open(model_filename, "rb") as f:
-        model = pickle.load(f)  # type: TimeSeriesModelRegressionMLP
+        model = pickle.load(f)  # type: TimeSeriesModelAutoRegressiveMLP
 
     # --- get sweep settings ------------------------------
     sweep_settings = get_cv_settings_1d(sweep, n)
@@ -434,7 +433,10 @@ def plot_cv_results(
     if log_x_scale:
         ax.set_xscale("log")
     ax.set_xticks(x_values)
-    ax.set_xticklabels([str(pv) for pv in param_values])
+    if all([isinstance(pv, (int, float)) for pv in param_values]):
+        ax.set_xticklabels(param_values)
+    else:
+        ax.set_xticklabels([str(pv) for pv in param_values], rotation=45, ha="right")
 
     ax.set_ylabel("MAE")
 
@@ -454,13 +456,14 @@ def plot_cv_results(
     i_best = list(selection_criterion).index(min(selection_criterion))
 
     best_loss_crit = selection_criterion[i_best]
-    best_param = param_values[i_best]
+    # best_param = param_values[i_best]
+    x_best_param = x_values[i_best]
 
     x_min, x_max = ax.get_xlim()
     y_min, y_max = ax.get_ylim()
 
     # line + text + dot - SELECTION_CRITERION
-    ax.plot(best_param, best_loss_crit, "go")
+    ax.plot(x_best_param, best_loss_crit, "go")
     ax.plot([x_min, x_max], [best_loss_crit, best_loss_crit], "g--", alpha=0.5)
     ax.text(x_min, best_loss_crit - 0.01 * y_max, f" {best_loss_crit:.3f}", ha="left", va="top", color="g")
 
