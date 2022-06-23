@@ -5,7 +5,7 @@ import random
 from dataclasses import dataclass
 from enum import Enum, auto
 from itertools import product
-from typing import Dict, List, Optional, Set, Tuple, Union
+from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
 import numpy as np
 from sklearn.base import BaseEstimator, RegressorMixin
@@ -16,6 +16,8 @@ from src.tools.datetime import estimate_eta, format_datetime, format_timedelta
 from src.tools.math import remove_nan_rows
 from src.tools.misc import sort_any
 from src.tools.progress import ProgressTimer
+
+from .plotting import CrossValidationPlot1D, CrossValidationPlot2D
 
 CV_METADATA_PARAM = "cv_metadata"
 
@@ -186,24 +188,24 @@ class CVMetaData:
 
 
 @dataclass
+class CVResult:
+
+    params: dict
+
+    train_metrics: List[float]
+    train_metric_mean: float
+    train_metric_std: float
+
+    val_metrics: List[float]
+    val_metric_mean: float
+    val_metric_std: float
+
+    fit_time_mean: float
+    fit_time_std: float
+
+
+@dataclass
 class CVResults:
-
-    # --- nested class ------------------------------------
-    @dataclass
-    class CVResult:
-
-        params: dict
-
-        train_metrics: List[float]
-        train_metric_mean: float
-        train_metric_std: float
-
-        val_metrics: List[float]
-        val_metric_mean: float
-        val_metric_std: float
-
-        fit_time_mean: float
-        fit_time_std: float
 
     # --- members -----------------------------------------
     score_metric: ScoreMetric
@@ -246,42 +248,45 @@ class CVResults:
         # --- return --------------------------------------
         return new_cv_results
 
-    def sweep_by_filter(self, param_name: str, param_filter: dict = None) -> Tuple[List, List, List, List, List]:
+    def sweep_by_filter(self, param_names: List[str], param_filter: dict = None) -> List[Tuple[Any, CVResult]]:
         """
         Returns a 1D sweep across the results, where...
-          - param_name determines the x-value of the sweep  (independent variable)
+          - param_names determines the x-axis of the sweep  (independent variable) (can be multiple)
           - param_filter, when specified, determines which subset of results to consider
-        If multiple results are obtain for the same value of param_name, we take the best one.
-        :param param_filter:
-        :param param_name:
-        :return: (param_values, train_metric_mean, train_metric_std, val_metric_mean, val_metric_std)-tuple
+        If multiple results are obtained for the same value of param_name, we take the best one.
+        :param param_filter: dictionary with key-value pairs treated as equality constraints when filtering
+        :param param_names: 1 or more parameter names over which we want to 1D sweep.  All unique value-tuples will
+                             be collected and sorted to form a 1D sweep.
+        :return: list of (param_value_tuple, CVResult)-tuples
         """
 
         # --- argument handling ---------------------------
         param_filter = param_filter or dict()
+        if not isinstance(param_names, list):
+            param_names = [param_names]
 
-        # --- get all parameter values --------------------
-        param_values = self.all_param_values()[param_name]
+        # --- get all parameter value tuples --------------
+        param_value_tuples = sort_any(
+            {
+                tuple([cv_result.params[param_name] for param_name in param_names])
+                for cv_result in self.filter(param_filter).all_results
+            }
+        )  # type: List[tuple]
 
         # --- fetch results -------------------------------
-        train_metric_mean = []
-        train_metric_std = []
-        val_metric_mean = []
-        val_metric_std = []
-        for param_value in param_values:
+        result = []
+        for param_value_tuple in param_value_tuples:
 
             # filter results by provided filter + this specific param value
-            param_filter[param_name] = param_value
+            for param_name, param_value in zip(param_names, param_value_tuple):
+                param_filter[param_name] = param_value
             filtered_results = self.filter(param_filter)
 
             # extract info from best result
-            train_metric_mean.append(filtered_results.best_result.train_metric_mean)
-            train_metric_std.append(filtered_results.best_result.train_metric_std)
-            val_metric_mean.append(filtered_results.best_result.val_metric_mean)
-            val_metric_std.append(filtered_results.best_result.val_metric_std)
+            result.append((param_value_tuple, filtered_results.best_result))
 
         # --- return result -------------------------------
-        return param_values, train_metric_mean, train_metric_std, val_metric_mean, val_metric_std
+        return result
 
     def show_optimal_results(self):
         def summarize_losses(losses: List[float]) -> str:
@@ -314,6 +319,18 @@ class CVResults:
             )
 
         print("-" * 80)
+
+    def plot_1d(self, param_names: Union[str, List[str]], param_filter: dict = None) -> CrossValidationPlot1D:
+        """
+        Creates a 1D plot for the provided parameter & filtering.
+        """
+        return CrossValidationPlot1D(param_names=param_names, data=self.sweep_by_filter(param_names, param_filter))
+
+    def plot_2d(self, x_param: str, y_param: str, param_filter: dict = None) -> CrossValidationPlot2D:
+        """
+        Creates a 2D plot for the provided parameter & filtering.
+        """
+        return CrossValidationPlot2D(x_param, y_param, data=self.sweep_by_filter([x_param, y_param], param_filter))
 
 
 class TabularCrossValidation:
