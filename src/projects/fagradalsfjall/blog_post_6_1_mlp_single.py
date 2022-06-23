@@ -30,6 +30,9 @@ class Sweep(Enum):
     N_EPOCHS_SHALLOW = auto()
     N_EPOCHS_DEEP = auto()
     WD = auto()
+    DROPOUT = auto()
+    # REGULARIZATION_1D = auto()
+    REGULARIZATION_2D = auto()
     LAGS = auto()
     LAYER_WIDTH = auto()
     N_LAYERS = auto()
@@ -192,6 +195,7 @@ def get_cv_settings_1d(sweep: Sweep, n: int) -> SweepSettings:
         "n_hidden_layers": [3],
         "layer_width": [100],
         "wd": [0.1],
+        "dropout": [0.4],
         "n_epochs": [nominal_n_epochs],
         "lr_max": [nominal_lr_max_method],
     }
@@ -239,6 +243,15 @@ def get_cv_settings_1d(sweep: Sweep, n: int) -> SweepSettings:
     elif sweep == Sweep.WD:
         cv_param_grid["wd"] = sorted([a * b for a, b in itertools.product([1, 2, 5], [0.001, 0.01, 0.1, 1, 10])])
         param_name = "wd"
+    elif sweep == Sweep.DROPOUT:
+        cv_param_grid["dropout"] = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 0.99]
+        param_name = "dropout"
+        log_x_scale = False
+    elif sweep == Sweep.REGULARIZATION_2D:
+        cv_param_grid["dropout"] = [0.0, 0.2, 0.4, 0.6, 0.8]
+        cv_param_grid["wd"] = [0.0, 0.001, 0.01, 0.1, 1, 10]
+        param_name = "dropout"
+        log_x_scale = False
     elif sweep == Sweep.LAGS:
         cv_param_grid["feature_selector"] = [
             FeatureSelector.first(n_inputs) for n_inputs in [4, 8, 16, 32, 64, 128, 192, 288]
