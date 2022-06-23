@@ -1,9 +1,14 @@
-from typing import List, Tuple
+from __future__ import annotations
+
+import sys
+from typing import List
 
 import numpy as np
 from sklearn.base import BaseEstimator, TransformerMixin
 
 from src.tools.math import exp_spaced_indices_fixed_max
+
+LARGE_INTEGER = sys.maxsize
 
 
 # =================================================================================================
@@ -14,24 +19,43 @@ class FeatureSelector(TransformerMixin, BaseEstimator):
     # -------------------------------------------------------------------------
     #  Constructor
     # -------------------------------------------------------------------------
-    def __init__(self):
-        self._selected_indices = []  # type: List[int]
+    def __init__(self, selected_indices: List[int]):
+        self.selected_indices = selected_indices
+
+    @property
+    def n_features(self) -> int:
+        return len(self.selected_indices)
+
+    @property
+    def first_index(self) -> int:
+        return min(self.selected_indices)
+
+    @property
+    def last_index(self) -> int:
+        return max(self.selected_indices)
 
     # -------------------------------------------------------------------------
     #  Fit & Predict
     # -------------------------------------------------------------------------
     def fit(self, x: np.ndarray, y: np.ndarray = None, **fit_params):
-        self._selected_indices = self._get_feature_indices(n_features_total=x.shape[1])
+        # only keep indices that fit within in # of columns in x
+        self.selected_indices = [i for i in self.selected_indices if i < x.shape[1]]
         return self
 
     def transform(self, x: np.ndarray, **transform_params) -> np.ndarray:
-        return x[:, self._selected_indices]
+        return x[:, self.selected_indices]
 
     # -------------------------------------------------------------------------
     #  Misc
     # -------------------------------------------------------------------------
     def __str__(self):
-        return f"features {str(self._selected_indices)}"
+        if (self.last_index - self.first_index) == (self.n_features - 1):
+            if self.first_index == 0:
+                return f"first {self.n_features}"
+            else:
+                return f"all in [{self.first_index}, {self.last_index}]"
+        else:
+            return f"{self.n_features} in [{self.first_index}, {self.last_index}]"
 
     # -------------------------------------------------------------------------
     #  Abstract methods
@@ -47,86 +71,30 @@ class FeatureSelector(TransformerMixin, BaseEstimator):
     #  Sorting
     # -------------------------------------------------------------------------
     def __gt__(self, other) -> bool:
-        return self.sorting_stats() > other.sorting_stats()
-
-    def __eq__(self, other) -> bool:
-        return isinstance(other, self.__class__) and (tuple(self._selected_indices) == tuple(other._selected_indices))
-
-    def sorting_stats(self) -> Tuple[int, ...]:
-        stats = [len(self._selected_indices)]
-        stats.extend(self._selected_indices)
-        return tuple(stats)
-
-
-# =================================================================================================
-#  Child Classes
-# =================================================================================================
-class FeatureSelector_All(FeatureSelector):
-    def _get_feature_indices(self, n_features_total: int):
-        return list(range(n_features_total))
-
-    def __str__(self):
-        return "FeatureSelector: all"
-
-
-class FeatureSelector_ExponentialSpacing(FeatureSelector):
-    def __init__(self, first_index=None, last_index=None, n_selected_features: int = None, reverse: bool = False):
-        super().__init__()
-
-        self.n_selected_features = n_selected_features  # None = all features; should be >0
-        self.first_index = first_index or 0  # first index to select  (will always be selected)
-        self.last_index = last_index  # last index to select  (will always be selected if n_selected_features > 1)
-        self.reverse = reverse  # if True, exponential spacing works top-down instead of bottom-up
-
-    def _get_feature_indices(self, n_features_total: int):
-
-        # --- pre-processing -------------------------------
-
-        # defaults in case of None
-        first_index = self.first_index if self.first_index is not None else 0
-        last_index = self.last_index if self.last_index is not None else n_features_total - 1
-        n_selected_features = (
-            self.n_selected_features if self.n_selected_features is not None else last_index - first_index + 1
+        return isinstance(other, self.__class__) and (self.n_features, tuple(self.selected_indices)) > (
+            other.n_features,
+            tuple(other.selected_indices),
         )
 
-        # last_index should be in [first_index, n_features_total-1]
-        last_index = max(min(last_index, n_features_total - 1), first_index)
+    def __eq__(self, other) -> bool:
+        return isinstance(other, self.__class__) and (self.selected_indices == other.selected_indices)
 
-        # n_selected_features should be positive and fit in [first_index, last_index]
-        n_selected_features = max(1, min(n_selected_features, last_index - first_index + 1))
+    def __hash__(self):
+        return hash(tuple(self.selected_indices))
 
-        # --- compute indices -----------------------------
-        if n_selected_features == 1:
-            indices = [first_index]
-        else:
-            indices = [
-                first_index + i for i in exp_spaced_indices_fixed_max(n_selected_features, last_index - first_index)
-            ]
+    # -------------------------------------------------------------------------
+    #  Factor methods
+    # -------------------------------------------------------------------------
+    @classmethod
+    def first(cls, n: int) -> FeatureSelector:
+        return FeatureSelector(list(range(n)))
 
-        # --- post-processing -----------------------------
-        if self.reverse:
-            indices = [last_index - (i - first_index) for i in reversed(indices)]
+    @classmethod
+    def range(cls, first_index: int, last_index: int) -> FeatureSelector:
+        return FeatureSelector(list(range(first_index, last_index + 1)))
 
-        # --- return --------------------------------------
-        return indices
-
-    def __str__(self):
-        n_features = len(self._selected_indices)
-        if n_features == 0:
-            return "0 features"
-        elif n_features < 5:
-            return f"features {self._selected_indices} (={n_features})"
-        else:
-            first_index = min(self._selected_indices)
-            last_index = max(self._selected_indices)
-
-            if max(self._selected_indices) - min(self._selected_indices) == n_features - 1:
-
-                return f"features {first_index} to {last_index} (={n_features})"
-
-            else:
-
-                if not self.reverse:
-                    return f"{n_features} features exp spaced {first_index} --> {last_index}"
-                else:
-                    return f"{n_features} features exp spaced {last_index} --> {first_index}"
+    @classmethod
+    def exp_spaced(cls, first_index: int, last_index: int, n_features: int) -> FeatureSelector:
+        return FeatureSelector(
+            [first_index + i for i in exp_spaced_indices_fixed_max(n_features, max_index=last_index - first_index)]
+        )

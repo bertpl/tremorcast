@@ -1,4 +1,4 @@
-from .feature_selectors import FeatureSelector, FeatureSelector_All, FeatureSelector_ExponentialSpacing
+from .feature_selectors import FeatureSelector
 from .mlp_base import MLP, Activation, LrMaxCriterion
 from .tabular_regressor import CVResults, ScoreMetric, TabularRegressor
 from .tabular_regressor_mlp import TabularRegressorMLP
