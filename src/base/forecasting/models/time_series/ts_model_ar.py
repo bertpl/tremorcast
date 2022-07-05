@@ -8,7 +8,7 @@ from typing import Dict, List, Optional, Set, Tuple, Union
 import numpy as np
 import pandas as pd
 
-from src.base.forecasting.models.tabular.tabular_regressor import CVResults, ScoreMetric, TabularRegressor
+from src.base.forecasting.models.tabular.tabular_regressor import CVResults, TabularMetric, TabularRegressor
 from src.tools.math import remove_nan_rows
 
 from .helpers import build_toeplitz

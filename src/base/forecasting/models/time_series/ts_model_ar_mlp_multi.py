@@ -4,7 +4,7 @@ from typing import Dict, List, Set, Union
 
 import pandas as pd
 
-from src.base.forecasting.models.tabular import CVResults, ScoreMetric
+from src.base.forecasting.models.tabular import CVResults, TabularMetric
 from src.base.forecasting.models.tabular.tabular_regressor_mlp_multi import TabularRegressorMLPMulti
 
 from .ts_model_ar import TimeSeriesModelAutoRegressive

@@ -3,8 +3,10 @@ from typing import List, Tuple
 import numpy as np
 import pandas as pd
 
-from src.base.forecasting.metrics import compute_mae_curve, compute_maximum_reliable_lead_time
 from src.base.forecasting.models import TimeSeriesForecastModel
+
+from .compute_mae_curve import compute_mae_curve
+from .max_reliable_lead_time import compute_maximum_reliable_lead_time
 
 
 def simulate_time_series_model(

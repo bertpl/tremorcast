@@ -1,6 +1,6 @@
 import numpy as np
 
-from src.base.forecasting.metrics.mae_curve import compute_mae_curve
+from src.base.forecasting.evaluation.helpers.compute_mae_curve import compute_mae_curve
 
 
 def test_compute_mae_curve():

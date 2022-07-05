@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Union
 import numpy as np
 
 from .feature_selectors import FeatureSelector
-from .tabular_regressor import CVResults, ScoreMetric, TabularRegressor
+from .tabular_regressor import CVResults, TabularMetric, TabularRegressor
 from .tabular_regressor_mlp import TabularRegressorMLP
 
 
