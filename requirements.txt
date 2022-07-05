@@ -26,6 +26,10 @@ scikit-learn >= 1.0
 u8darts[torch]   # = darts core + pytorch, hence no prophet
 fastai >= 2.5.6
 
+# --- Jupyter ---------------
+jupyterlab >= 3.4
+ipywidgets >= 7.7
+
 # --- other -----------------
 tqdm >= 4.62
 
