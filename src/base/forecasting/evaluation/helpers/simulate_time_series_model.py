@@ -3,14 +3,14 @@ from typing import List, Tuple
 import numpy as np
 import pandas as pd
 
-from src.base.forecasting.models import TimeSeriesForecastModel
+from src.base.forecasting.models import TimeSeriesModel
 
 from .compute_mae_curve import compute_mae_curve
 from .max_reliable_lead_time import compute_maximum_reliable_lead_time
 
 
 def simulate_time_series_model(
-    model: TimeSeriesForecastModel,
+    model: TimeSeriesModel,
     training_data: pd.DataFrame,
     test_data: pd.DataFrame,
     accuracy_threshold: float,
@@ -51,7 +51,7 @@ def simulate_time_series_model(
             data=training_data.append(test_data),
             retrain_model=retrain_model,
             first_sample=len(training_data),
-            horizon=horizon,
+            hor=horizon,
             overlap_end=False,
             stride=stride,
         )
