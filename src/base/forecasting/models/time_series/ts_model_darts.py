@@ -32,7 +32,7 @@ class TimeSeriesModelDarts(TimeSeriesModel, ABC):
     #  Fit / Predict
     # -------------------------------------------------------------------------
     def fit(self, x: np.ndarray):
-        ts_train = TimeSeries.from_values(x.reshape((x.size(), 1)))
+        ts_train = TimeSeries.from_values(x.reshape((x.size, 1)))
         print("Training...   ", end="")
         self.darts_model.fit(ts_train, **self.fit_kwargs)
         print("Done.")
@@ -50,7 +50,7 @@ class TimeSeriesModelDarts(TimeSeriesModel, ABC):
     ) -> List[Tuple[int, np.ndarray]]:
 
         # --- create joint TimeSeries ---------------------
-        series = TimeSeries.from_values(x.reshape((x.size(), 1)))
+        series = TimeSeries.from_values(x.reshape((x.size, 1)))
 
         # --- historical_forecasts ------------------------
         ts_forecasts = self.darts_model.historical_forecasts(
@@ -67,5 +67,5 @@ class TimeSeriesModelDarts(TimeSeriesModel, ABC):
         # --- return in appropriate format ----------------
         return [
             (i, time_series.data_array().to_numpy().flatten())
-            for i, time_series in zip(range(first_sample, x.size(), stride), ts_forecasts)
+            for i, time_series in zip(range(first_sample, x.size, stride), ts_forecasts)
         ]

@@ -53,12 +53,12 @@ class TimeSeriesModel(ABC, BaseEstimator):
         forecasts = []  # type: List[Tuple[int, np.ndarray]]
 
         for i in tqdm(
-            range(first_sample, x.size(), stride),
+            range(first_sample, x.size, stride),
             desc=f"Evaluating model '{self.name}'".ljust(60),
             file=sys.stdout,
         ):
 
-            forecasts.append((i, self.predict(x_hist=x[0:i], hor=hor if overlap_end else min(hor, x.size() - i))))
+            forecasts.append((i, self.predict(x_hist=x[0:i], hor=hor if overlap_end else min(hor, x.size - i))))
 
         return forecasts
 

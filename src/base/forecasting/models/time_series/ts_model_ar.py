@@ -64,20 +64,11 @@ class TimeSeriesModelAutoRegressive(TimeSeriesModel):
 
     def predict(self, x_hist: np.ndarray, hor: int) -> np.ndarray:
 
-        # --- predict -------------------------------------
-        n_iterations = math.ceil(hor / self.n)
-        predictions = np.zeros(n_iterations * self.n)
+        # this will return [(i, prediction)]
+        all_preds = self.batch_predict(x_hist, first_sample=x_hist.size, hor=hor, overlap_end=True)
 
-        for i in range(n_iterations):
-
-            x = np.flip(x_hist[self.p :]).reshape((1, self.p))
-            y = self.regressor.predict(x)
-
-            predictions[i * self.n : (i + 1) * self.n] = y.flatten()
-            x_hist = np.concatenate([x_hist, y], axis=1)
-
-        # --- return --------------------------------------
-        return predictions[0:hor].flatten()
+        # return prediction
+        return all_preds[0][1]
 
     def batch_predict(
         self,
@@ -101,7 +92,7 @@ class TimeSeriesModelAutoRegressive(TimeSeriesModel):
         # we will iteratively predict n samples forward for each of these rows and pre-populate this array
         # with the history of p samples needed to start each of these predictions.
         predictions = np.concatenate(
-            [x[i_start - self.p : i_start].reshape((1, self.p)) for i_start in range(first_sample, x.size(), stride)],
+            [x[i_start - self.p : i_start].reshape((1, self.p)) for i_start in range(first_sample, x.size+1, stride)],
             axis=0,
         )
 
@@ -115,7 +106,7 @@ class TimeSeriesModelAutoRegressive(TimeSeriesModel):
             # Previous p samples for each prediction, needed to predict an additional n steps ahead.
             # We need to flip left-right, because the tabular regressor is trained with [lag_1, lag_2, ..., lag_p]
             #  as features.
-            x_hist = np.fliplr(predictions[:, -self.p :])
+            x_hist = np.fliplr(predictions[:, -self.p:])
 
             # call regressor.predict, leading to n new samples
             new_preds = self.regressor.predict(x_hist)
@@ -129,9 +120,9 @@ class TimeSeriesModelAutoRegressive(TimeSeriesModel):
         return [
             (
                 i_sample,
-                predictions[i_pred, :] if overlap_end else predictions[i_pred, 0 : min(hor, x.size() - i_sample)],
+                predictions[i_pred, :] if overlap_end else predictions[i_pred, 0 : min(hor, x.size - i_sample)],
             )
-            for i_pred, i_sample in range(first_sample, x.size(), stride)
+            for i_pred, i_sample in enumerate(range(first_sample, x.size+1, stride))
         ]
 
     # -------------------------------------------------------------------------
