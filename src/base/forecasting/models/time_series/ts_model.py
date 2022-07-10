@@ -2,11 +2,21 @@ from __future__ import annotations
 
 import sys
 from abc import ABC, abstractmethod
-from typing import List, Tuple
+from dataclasses import dataclass
+from typing import List, Optional, Tuple, Union
 
 import numpy as np
 from sklearn.base import BaseEstimator
 from tqdm import tqdm
+
+from src.base.forecasting.evaluation.cross_validation import (
+    CV_METADATA_PARAM,
+    CVMetaData,
+    CVResult,
+    CVResults,
+    materialize_param_grid,
+)
+from src.base.forecasting.evaluation.metrics import TimeSeriesMetric
 
 
 # =================================================================================================
@@ -26,6 +36,28 @@ class TimeSeriesModel(ABC, BaseEstimator):
         :param name: (str) type/name of the model
         """
         self.name = name
+
+        # internal
+        self._cv = TimeSeriesCrossValidation(self)
+
+    # -------------------------------------------------------------------------
+    #  Cross-Validation
+    # -------------------------------------------------------------------------
+    @property
+    def cv(self):
+        """Return TabularCrossValidation object that can perform grid search CV on this model."""
+        return self._cv
+
+    def get_cv_metadata(self) -> Optional[CVMetaData]:
+        return getattr(self, CV_METADATA_PARAM, None)
+
+    def cv_active(self) -> bool:
+        """True if this instance is being used inside a CV grid search"""
+        return self.get_cv_metadata() is not None
+
+    @property
+    def show_progress(self) -> bool:
+        return not self.cv_active()
 
     # -------------------------------------------------------------------------
     #  SIMULATION
@@ -83,4 +115,66 @@ class TimeSeriesModel(ABC, BaseEstimator):
         :param hor: (int) number of samples we need to predict.
         :return: 1D numpy array of length 'hor' with forecasts.
         """
+        pass
+
+
+# =================================================================================================
+#  Cross-Validation
+# =================================================================================================
+@dataclass
+class TimeSeriesCVSplitter:
+
+    min_samples_train: int
+    min_samples_validate: int
+    n_splits: int = 10
+
+    def get_splits(self, n_samples_tot: int) -> List[Tuple[int, int]]:
+        # returns a list of length n_splits containing (n_samples_train, n_samples_val)-tuples
+        # consistent with requirements and available data
+
+        # total number of samples that we can use in the validation sets
+        n_samples_validation_tot = n_samples_tot - self.min_samples_train
+
+        if n_samples_validation_tot >= self.n_splits * self.min_samples_validate:
+            # validation sets do not overlap and are >= min_samples_validate
+
+            val_set_sizes = np.diff(np.round(np.linspace(0, n_samples_tot - self.min_samples_train, self.n_splits + 1)))
+            return [
+                (int(self.min_samples_train + sum(val_set_sizes[:i])), int(val_set_sizes[i]))
+                for i in range(self.n_splits)
+            ]
+
+        else:
+            # validation sets overlap and are == min_samples_validate
+
+            n_train_samples = np.round(
+                np.linspace(self.min_samples_train, n_samples_tot - self.min_samples_validate, self.n_splits)
+            )
+
+            if len(set(n_train_samples)) < self.n_splits:
+                raise ValueError(f"Cannot generate {self.n_splits} unique splits for given settings; not enough data.")
+
+            return [(int(n_train), self.min_samples_validate) for n_train in n_train_samples]
+
+
+class TimeSeriesCrossValidation:
+
+    # -------------------------------------------------------------------------
+    #  Constructor
+    # -------------------------------------------------------------------------
+    def __init__(self, ts_model: TimeSeriesModel):
+        self.ts_model = ts_model
+        self.results = None  # type: Optional[CVResults]
+
+    # -------------------------------------------------------------------------
+    #  Grid Search
+    # -------------------------------------------------------------------------
+    def grid_search(
+        self,
+        x: np.ndarray,
+        param_grid: Union[dict, List[dict]],
+        metric: TimeSeriesMetric,
+        ts_cv_splitter: TimeSeriesCVSplitter,
+        n_jobs: int = -1,
+    ):
         pass
