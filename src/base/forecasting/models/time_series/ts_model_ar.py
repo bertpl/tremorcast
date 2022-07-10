@@ -92,7 +92,7 @@ class TimeSeriesModelAutoRegressive(TimeSeriesModel):
         # we will iteratively predict n samples forward for each of these rows and pre-populate this array
         # with the history of p samples needed to start each of these predictions.
         predictions = np.concatenate(
-            [x[i_start - self.p : i_start].reshape((1, self.p)) for i_start in range(first_sample, x.size+1, stride)],
+            [x[i_start - self.p : i_start].reshape((1, self.p)) for i_start in range(first_sample, x.size + 1, stride)],
             axis=0,
         )
 
@@ -106,7 +106,7 @@ class TimeSeriesModelAutoRegressive(TimeSeriesModel):
             # Previous p samples for each prediction, needed to predict an additional n steps ahead.
             # We need to flip left-right, because the tabular regressor is trained with [lag_1, lag_2, ..., lag_p]
             #  as features.
-            x_hist = np.fliplr(predictions[:, -self.p:])
+            x_hist = np.fliplr(predictions[:, -self.p :])
 
             # call regressor.predict, leading to n new samples
             new_preds = self.regressor.predict(x_hist)
@@ -122,7 +122,7 @@ class TimeSeriesModelAutoRegressive(TimeSeriesModel):
                 i_sample,
                 predictions[i_pred, :] if overlap_end else predictions[i_pred, 0 : min(hor, x.size - i_sample)],
             )
-            for i_pred, i_sample in enumerate(range(first_sample, x.size+1, stride))
+            for i_pred, i_sample in enumerate(range(first_sample, x.size + 1, stride))
         ]
 
     # -------------------------------------------------------------------------
