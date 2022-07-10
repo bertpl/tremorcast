@@ -1,18 +1,25 @@
+from __future__ import annotations
+
 import numpy as np
-import pandas as pd
 
-from src.base.forecasting.models.time_series.ts_model import TimeSeriesForecastModel
+from src.base.forecasting.models.time_series.ts_model import TimeSeriesModel
 
 
-class TimeSeriesModelNaiveMean(TimeSeriesForecastModel):
+class TimeSeriesModelNaiveMean(TimeSeriesModel):
     """Naive timeseries forecast model that always predicts the mean of the training dataset."""
 
-    def __init__(self, signal_name: str):
-        super().__init__("naive-mean", signal_name)
+    # -------------------------------------------------------------------------
+    #  Constructor
+    # -------------------------------------------------------------------------
+    def __init__(self):
+        super().__init__("naive-mean")
         self.mean = 0.0
 
-    def fit(self, training_data: pd.DataFrame):
-        self.mean = training_data[self.signal_name].mean()
+    # -------------------------------------------------------------------------
+    #  Fit / Predict
+    # -------------------------------------------------------------------------
+    def fit(self, x: np.ndarray):
+        self.mean = x.mean()
 
-    def predict(self, history: pd.DataFrame, n_samples: int) -> np.ndarray:
-        return np.full(n_samples, self.mean)
+    def predict(self, x_hist: np.ndarray, hor: int) -> np.ndarray:
+        return np.full(hor, self.mean)
