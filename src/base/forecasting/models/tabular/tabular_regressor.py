@@ -66,7 +66,7 @@ class TabularRegressor(BaseEstimator, RegressorMixin):
             setattr(self, param_name, param_value)
 
         # internal
-        self._grid_search_cv = TabularCrossValidation(self)
+        self._cv = TabularCrossValidation(self)
 
     def get_params(self, deep=True):
         params = super().get_params(deep)
@@ -115,7 +115,7 @@ class TabularRegressor(BaseEstimator, RegressorMixin):
     @property
     def cv(self):
         """Return TabularCrossValidation object that can perform grid search CV on this model."""
-        return self._grid_search_cv
+        return self._cv
 
     def get_cv_metadata(self) -> Optional[CVMetaData]:
         return getattr(self, CV_METADATA_PARAM, None)
