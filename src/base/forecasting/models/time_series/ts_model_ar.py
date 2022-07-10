@@ -3,22 +3,23 @@
 from __future__ import annotations
 
 import math
+import sys
 from typing import Dict, List, Optional, Set, Tuple, Union
 
 import numpy as np
-import pandas as pd
+from tqdm import tqdm
 
 from src.base.forecasting.models.tabular.tabular_regressor import CVResults, TabularMetric, TabularRegressor
 from src.tools.math import remove_nan_rows
 
 from .helpers import build_toeplitz
-from .ts_model import TimeSeriesForecastModel
+from .ts_model import TimeSeriesModel
 
 
 # =================================================================================================
 #  TimeSeries model based on TabularRegressor
 # =================================================================================================
-class TimeSeriesModelAutoRegressive(TimeSeriesForecastModel):
+class TimeSeriesModelAutoRegressive(TimeSeriesModel):
     """
     This class implements a n-step-ahead timeseries regression model.
         n-step-ahead: we forecast samples 0, ... n-1
@@ -31,87 +32,134 @@ class TimeSeriesModelAutoRegressive(TimeSeriesForecastModel):
     # -------------------------------------------------------------------------
     #  Constructor
     # -------------------------------------------------------------------------
-    def __init__(
-        self, signal_name: str, p: int, n: int, regressor: TabularRegressor, avoid_training_nans: bool = False
-    ):
+    def __init__(self, p: int, n: int, regressor: TabularRegressor, avoid_training_nans: bool = False):
         """
         Constructor of an auto-regressive model using a user-provided tabular regressor.
-        :param signal_name: (str) signal name to forecast
         :param p: (int) number of past samples to use as features in auto-regression
         :param n: (int) number of future samples forecast by the tabular regressor
         :param regressor: (TabularRegressor) regressor model.
         :param avoid_training_nans: (bool) set to True if the regressor cannot cope well with NaNs and these need
                                             to be removed (i.e. any row containing at least 1 NaN) from the dataset.
         """
-        super().__init__(model_type=f"ar_{regressor.name}", signal_name=signal_name)
+        super().__init__(name=f"ar_{regressor.name}")
 
         self.regressor = regressor  # type: TabularRegressor
 
         self.p = p
         self.n = n
-        self._avoid_training_nans = avoid_training_nans
+        self.avoid_training_nans = avoid_training_nans
 
-        self._cv = TimeSeriesAutoRegressiveCrossValidation(self)
+        self._tabular_cv = TimeSeriesTabularCrossValidation(self)
 
     # -------------------------------------------------------------------------
     #  Fit & Predict
     # -------------------------------------------------------------------------
-    def fit(self, training_data: pd.DataFrame):
+    def fit(self, x: np.ndarray):
 
         # --- construct tabulated dataset x,y -------------
-        x, y = self.build_tabulated_data(training_data)
+        x_tabular, y_tabular = self.build_tabulated_data(x)
 
         # --- fit model -----------------------------------
-        self.regressor.fit(x, y)
+        self.regressor.fit(x_tabular, y_tabular)
 
-    def predict(self, df_history: pd.DataFrame, n_samples: int) -> np.ndarray:
-
-        # --- convert to numpy array ----------------------
-        history = df_history[self.signal_name].to_numpy()
-        history = history.reshape((1, len(history)))
+    def predict(self, x_hist: np.ndarray, hor: int) -> np.ndarray:
 
         # --- predict -------------------------------------
-        n_iterations = math.ceil(n_samples / self.n)
+        n_iterations = math.ceil(hor / self.n)
         predictions = np.zeros(n_iterations * self.n)
 
         for i in range(n_iterations):
 
-            x = np.fliplr(history[:, -self.p :])
+            x = np.flip(x_hist[self.p :]).reshape((1, self.p))
             y = self.regressor.predict(x)
 
             predictions[i * self.n : (i + 1) * self.n] = y.flatten()
-            history = np.concatenate([history, y], axis=1)
+            x_hist = np.concatenate([x_hist, y], axis=1)
 
         # --- return --------------------------------------
-        return predictions[0:n_samples].flatten()
+        return predictions[0:hor].flatten()
+
+    def batch_predict(
+        self,
+        x: np.ndarray,
+        first_sample: int,
+        hor: int,
+        overlap_end: bool = False,
+        stride: int = 1,
+    ) -> List[Tuple[int, np.ndarray]]:
+        """
+        In this implementation we batch together calls to our tabular regressor, to minimize overhead.  For certain
+        types of regressors (such as fast.ai models) this can dramatically increase total computation speed.
+        """
+
+        # --- init ----------------------------------------
+
+        # number of calls to our tabular regressor
+        n_iterations = math.ceil(hor / self.n)
+
+        # each row of predictions represents 1 prediction we need to make
+        # we will iteratively predict n samples forward for each of these rows and pre-populate this array
+        # with the history of p samples needed to start each of these predictions.
+        predictions = np.concatenate(
+            [x[i_start - self.p : i_start].reshape((1, self.p)) for i_start in range(first_sample, x.size(), stride)],
+            axis=0,
+        )
+
+        # --- iteratively predict 'hor' ahead -------------
+        for i in tqdm(
+            range(n_iterations),
+            desc=f"Batch prediction for model {self.name} [hor={hor}, batch_size={predictions.shape[0]}]",
+            file=sys.stdout,
+        ):
+
+            # Previous p samples for each prediction, needed to predict an additional n steps ahead.
+            # We need to flip left-right, because the tabular regressor is trained with [lag_1, lag_2, ..., lag_p]
+            #  as features.
+            x_hist = np.fliplr(predictions[:, -self.p :])
+
+            # call regressor.predict, leading to n new samples
+            new_preds = self.regressor.predict(x_hist)
+
+            # add n new samples to values we already have
+            predictions = np.concatenate([predictions, new_preds], axis=1)
+
+        predictions = predictions[:, self.p :]  # remove the pre-populated values such that only the predictions remain
+
+        # --- return results ------------------------------
+        return [
+            (
+                i_sample,
+                predictions[i_pred, :] if overlap_end else predictions[i_pred, 0 : min(hor, x.size() - i_sample)],
+            )
+            for i_pred, i_sample in range(first_sample, x.size(), stride)
+        ]
 
     # -------------------------------------------------------------------------
     #  Cross-Validation
     # -------------------------------------------------------------------------
     @property
-    def cv(self) -> TimeSeriesAutoRegressiveCrossValidation:
-        return self._cv
+    def tabular_cv(self) -> TimeSeriesTabularCrossValidation:
+        return self._tabular_cv
 
     # -------------------------------------------------------------------------
     #  Dataset handling
     # -------------------------------------------------------------------------
-    def build_tabulated_data(self, scaled_training_data: pd.DataFrame) -> Tuple[np.ndarray, np.ndarray]:
+    def build_tabulated_data(self, x: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
 
         # --- convert to tabular data ---------------------
-        ts = scaled_training_data[self.signal_name].to_numpy()
-        x = self.__build_features(ts)
-        y = self.__build_targets(ts)
+        x_tabular = self.__build_features(x)
+        y_tabular = self.__build_targets(x)
 
         # --- remove NaN rows, if needed ------------------
-        if self._avoid_training_nans:
+        if self.avoid_training_nans:
             # Remove any row that has at least 1 NaN in x or y from the dataset.
             # This should avoid confusing the regressor that we train on this dataset.
             # However, some regressors might want to have all data, especially if e.g.
             # only part of a y-row has NaNs with no NaNs in the corresponding x-row.
-            x, y = remove_nan_rows(x, y)
+            x_tabular, y_tabular = remove_nan_rows(x_tabular, y_tabular)
 
         # --- return --------------------------------------
-        return x, y
+        return x_tabular, y_tabular
 
     def __build_features(self, ts: np.ndarray) -> np.ndarray:
         # build Toeplitz matrix containing samples 1,...,p in the past,
@@ -126,7 +174,7 @@ class TimeSeriesModelAutoRegressive(TimeSeriesForecastModel):
 # =================================================================================================
 #  Cross-Validation
 # =================================================================================================
-class TimeSeriesAutoRegressiveCrossValidation:
+class TimeSeriesTabularCrossValidation:
 
     # -------------------------------------------------------------------------
     #  Constructor
@@ -146,20 +194,20 @@ class TimeSeriesAutoRegressiveCrossValidation:
     # -------------------------------------------------------------------------
     def grid_search(
         self,
-        training_data: pd.DataFrame,
+        x: np.ndarray,
         param_grid: Union[Dict, List[Dict]],
-        score_metric: ScoreMetric,
+        score_metric: TabularMetric,
         n_splits: int = 10,
         n_jobs: int = -1,
     ):
 
         # --- construct training data ---------------------
-        x_train, y_train = self.ts_model.build_tabulated_data(training_data)
+        x_tabular, y_tabular = self.ts_model.build_tabulated_data(x)
 
         # --- tabular regressor cross-validation ----------
         self.ts_model.regressor.cv.grid_search(
-            x=x_train,
-            y=y_train,
+            x=x_tabular,
+            y=y_tabular,
             param_grid=param_grid,
             score_metric=score_metric,
             n_splits=n_splits,

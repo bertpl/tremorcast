@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Dict, List, Set, Union
 
+import numpy as np
 import pandas as pd
 
 from src.base.forecasting.models.tabular import CVResults, TabularMetric
@@ -14,11 +15,11 @@ from .ts_model_ar import TimeSeriesModelAutoRegressive
 #  Time Series Model
 # =================================================================================================
 class TimeSeriesModelAutoRegressiveMLPMulti(TimeSeriesModelAutoRegressive):
-    def __init__(self, signal_name: str, p: int, n: int, **kwargs):
+    def __init__(self, p: int, n: int, **kwargs):
 
         # regressor
         regressor = TabularRegressorMLPMulti(n_targets=n, **kwargs)
-        super().__init__(signal_name, p, n, regressor)
+        super().__init__(p, n, regressor)
         self.regressor = regressor  # type: TabularRegressorMLPMulti
 
         # cv
@@ -52,9 +53,9 @@ class TimeSeriesAutoRegressiveSubModelCrossValidation:
     # -------------------------------------------------------------------------
     def grid_search(
         self,
-        training_data: pd.DataFrame,
+        x: np.ndarray,
         param_grid: Union[Dict, List[Dict]],
-        score_metric: ScoreMetric,
+        score_metric: TabularMetric,
         n_splits: int = 10,
         n_jobs: int = -1,
         i_sub_models: List[int] = None,
@@ -64,12 +65,12 @@ class TimeSeriesAutoRegressiveSubModelCrossValidation:
         i_sub_models = i_sub_models or list(range(self.ts_model.regressor.n_sub_models))
 
         # --- construct training data ---------------------
-        x_train, y_train = self.ts_model.build_tabulated_data(training_data)
+        x_tabular, y_tabular = self.ts_model.build_tabulated_data(x)
 
         # --- tabular regressor cross-validation ----------
         self.ts_model.regressor.sub_cv.grid_search(
-            x=x_train,
-            y=y_train,
+            x=x_tabular,
+            y=y_tabular,
             param_grid=param_grid,
             score_metric=score_metric,
             n_splits=n_splits,

@@ -1,4 +1,4 @@
-from .ts_model import TimeSeriesForecastModel
+from .ts_model import TimeSeriesModel
 from .ts_model_ar import TimeSeriesModelAutoRegressive
 from .ts_model_ar_mlp import TimeSeriesModelAutoRegressiveMLP
 from .ts_model_ar_mlp_multi import TimeSeriesModelAutoRegressiveMLPMulti

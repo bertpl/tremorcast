@@ -34,7 +34,7 @@ class TimeSeriesModel(ABC, BaseEstimator):
         self,
         x: np.ndarray,
         first_sample: int,
-        horizon: int,
+        hor: int,
         overlap_end: bool = False,
         stride: int = 1,
     ) -> List[Tuple[int, np.ndarray]]:
@@ -43,7 +43,7 @@ class TimeSeriesModel(ABC, BaseEstimator):
 
         :param x: (np.ndarray, 1D) containing the entire time series for which we want to perform batch predictions.
         :param first_sample: (int) The sample at which the first prediction will start
-        :param horizon: (int) number of samples to be forecast each time.
+        :param hor: (int) number of samples to be forecast each time.
         :param overlap_end: (bool, default=False) if False, the horizon is shortened for the last predictions, to not
                               extend beyond the provided dataset.
         :param stride: (int) number of samples between each prediction.
@@ -58,9 +58,7 @@ class TimeSeriesModel(ABC, BaseEstimator):
             file=sys.stdout,
         ):
 
-            forecasts.append(
-                (i, self.predict(x_hist=x[0:i], hor=horizon if overlap_end else min(horizon, x.size() - i)))
-            )
+            forecasts.append((i, self.predict(x_hist=x[0:i], hor=hor if overlap_end else min(hor, x.size() - i))))
 
         return forecasts
 
