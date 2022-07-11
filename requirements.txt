@@ -26,6 +26,9 @@ scikit-learn >= 1.0
 u8darts[torch]   # = darts core + pytorch, hence no prophet
 fastai >= 2.5.6
 
+# --- parallel processing ---
+joblib >= 1.1.0
+
 # --- Jupyter ---------------
 jupyterlab >= 3.4
 ipywidgets >= 7.7
