@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 
-from src.base.forecasting.evaluation.metrics.base_metric import BaseMetric
+from src.base.forecasting.evaluation.metrics.base_metric import BaseMetric, ModelFitTime
 from src.tools.misc import sort_any
 
 from .cv_plot_1d import CrossValidationPlot1D
@@ -13,43 +12,73 @@ from .cv_plot_2d import CrossValidationPlot2D
 
 
 # =================================================================================================
+#  CrossValidation result for 1 set of parameters & just train / validation data
+# =================================================================================================
+class CVMetricResult:
+    def __init__(self, metric: BaseMetric, n_folds: int):
+        self._metric = metric
+        self.all = [None] * n_folds  # type: List[Optional[float]]
+        self.overall = None  # type: Optional[float]
+
+    # -------------------------------------------------------------------------
+    #  Helpers
+    # -------------------------------------------------------------------------
+    def compute_overall(self):
+        self.overall = self._metric.aggregate(self.all)
+
+    def mean(self) -> float:
+        return float(np.mean(self.all))
+
+    def std(self) -> float:
+        return float(np.std(self.all))
+
+    def quartile_range(self) -> Tuple[float, float]:
+        return np.quantile(self.all, 0.25), np.quantile(self.all, 0.75)
+
+    def summarize(self) -> str:
+        return (
+            f"{self.overall:>8.3f} "
+            f"{self.mean():>8.3f} ± {self.std():<8.3f} "
+            f"<-- [{''.join([f'{x:>9.3f} ' for x in self.all])}]"
+        )
+
+
+# =================================================================================================
 #  CrossValidation result for 1 set of parameters
 # =================================================================================================
-@dataclass
 class CVResult:
+    def __init__(self, metric: BaseMetric, params: dict, n_folds: int):
 
-    params: dict
+        self.metric = metric
+        self.params = params
 
-    train_metrics: List[float]
-    train_metric_mean: float
-    train_metric_std: float
-
-    val_metrics: List[float]
-    val_metric_mean: float
-    val_metric_std: float
-
-    fit_time_mean: float
-    fit_time_std: float
+        self.train_metrics = CVMetricResult(metric, n_folds)
+        self.val_metrics = CVMetricResult(metric, n_folds)
+        self.fit_times = CVMetricResult(ModelFitTime(), n_folds)
 
 
 # =================================================================================================
 #  CrossValidation results for n sets of parameters
 # =================================================================================================
-@dataclass
 class CVResults:
+    def __init__(self, metric: BaseMetric, param_sets: List[dict], n_folds: int):
+        # instantiates a new 'empty' CVResults object for the provided arguments.
 
-    # --- members -----------------------------------------
-    metric: BaseMetric
-    best_result: Optional[CVResult]
-    all_results: List[CVResult]
+        self.metric = metric
+        self.n_folds = n_folds
 
-    # --- helper functions --------------------------------
+        self.all_results = [CVResult(metric, param_set, n_folds) for param_set in param_sets]
+        self.best_result = None  # type: Optional[CVResult]
+
+    # -------------------------------------------------------------------------
+    #  Helpers
+    # -------------------------------------------------------------------------
     def update_best_result(self):
         """Updates the best_result member based on all_results."""
         for cv_result in self.all_results:
             if (self.best_result is None) or (
-                self.metric.metric_to_score(cv_result.val_metric_mean)
-                > self.metric.metric_to_score(self.best_result.val_metric_mean)
+                self.metric.metric_to_score(cv_result.val_metrics.overall)
+                > self.metric.metric_to_score(self.best_result.val_metrics.overall)
             ):
 
                 self.best_result = cv_result
@@ -72,16 +101,8 @@ class CVResults:
                 cv_result for cv_result in filtered_results if cv_result.params.get(param_name) == param_value
             ]
 
-        # --- create new CVResults object -----------------
-        new_cv_results = CVResults(
-            metric=self.metric,
-            best_result=None,
-            all_results=filtered_results,
-        )
-        new_cv_results.update_best_result()
-
-        # --- return --------------------------------------
-        return new_cv_results
+        # --- create new CVResults object & return --------
+        return self.from_existing_results(self.metric, filtered_results, self.n_folds)
 
     def sweep_by_filter(self, param_names: List[str], param_filter: dict = None) -> List[Tuple[Any, CVResult]]:
         """
@@ -124,10 +145,6 @@ class CVResults:
         return result
 
     def show_optimal_results(self):
-        def summarize_losses(losses: List[float]) -> str:
-            mean = np.mean(losses)
-            std = np.std(losses)
-            return f"{mean:>8.3f} ± {std:<8.3f} <-- [{''.join([f'{x:>9.3f} ' for x in losses])}]"
 
         # --- all values for each param -------------------
         all_param_values = self.all_param_values()
@@ -138,9 +155,9 @@ class CVResults:
         max_value_len = max([len(str(self.best_result.params[pn])) for pn in param_names])
 
         # --- show results --------------------------------
-        print("-" * 80)
-        print("Training losses   : " + summarize_losses(self.best_result.train_metrics))
-        print("Validation losses : " + summarize_losses(self.best_result.val_metrics))
+        print("-" * 100)
+        print("Training metrics   : " + self.best_result.train_metrics.summarize())
+        print("Validation metrics : " + self.best_result.val_metrics.summarize())
         print("Optimal parameter values:")
         for param_name in param_names:
             param_value = self.best_result.params[param_name]
@@ -153,8 +170,11 @@ class CVResults:
                 + "]"
             )
 
-        print("-" * 80)
+        print("-" * 100)
 
+    # -------------------------------------------------------------------------
+    #  Plotting
+    # -------------------------------------------------------------------------
     def plot_1d(self, param_names: Union[str, List[str]], param_filter: dict = None) -> CrossValidationPlot1D:
         """
         Creates a 1D plot for the provided parameter & filtering.
@@ -175,3 +195,26 @@ class CVResults:
             data=self.sweep_by_filter([x_param, y_param], param_filter),
             higher_is_better=self.metric.greater_metric_is_better(),
         )
+
+    # -------------------------------------------------------------------------
+    #  Factory methods
+    # -------------------------------------------------------------------------
+    @classmethod
+    def empty(cls, metric: BaseMetric, param_sets: List[dict], n_folds: int) -> CVResults:
+        # child classes should override this method if they used a child class of CVResult
+        return CVResults(metric, param_sets, n_folds)
+
+    @classmethod
+    def from_existing_results(cls, metric: BaseMetric, all_results: List[CVResult], n_folds: int) -> CVResults:
+
+        # new empty CVResults object
+        cv_results = cls.empty(metric=metric, param_sets=[result.params for result in all_results], n_folds=n_folds)
+
+        # copy CVResult objects into it
+        cv_results.all_results = all_results
+
+        # update best result
+        cv_results.update_best_result()
+
+        # return
+        return cv_results
