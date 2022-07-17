@@ -214,11 +214,20 @@ class TabularCrossValidation:
             print(f"Total computation time: {format_timedelta(timer.sec_elapsed())}.")
 
         # --- extract results -----------------------------
-        self.results = CVResults(metric, None, [])
+        # the param_sets in param_set_list always have their param_values inside a list of just 1 element;
+        #   this is purely for GridSearchCV, which expects it that way, but CVResults does not expect this.
+        param_set_list = [
+            {param_name: param_values[0] for param_name, param_values in param_set.items()}
+            for param_set in param_set_list
+        ]
 
+        self.results = CVResults(metric, param_set_list, n_splits)
+
+        # populate results object
         for i_param_set, param_set in enumerate(param_set_list):
             del param_set[CV_METADATA_PARAM]  # internal metadata; not needed
 
+            # extract metrics & fit times
             train_metrics = [
                 metric.score_to_metric(grid_search.cv_results_[f"split{i}_train_score"][i_param_set])
                 for i in range(n_splits)
@@ -228,22 +237,21 @@ class TabularCrossValidation:
                 for i in range(n_splits)
             ]
 
-            self.results.all_results.append(
-                CVResult(
-                    params={
-                        param_name: param_values[0]  # param_values is always a list of just 1 element
-                        for param_name, param_values in param_set.items()
-                    },
-                    train_metrics=train_metrics,
-                    train_metric_mean=float(np.mean(train_metrics)),
-                    train_metric_std=float(np.std(train_metrics)),
-                    val_metrics=val_metrics,
-                    val_metric_mean=float(np.mean(val_metrics)),
-                    val_metric_std=float(np.std(val_metrics)),
-                    fit_time_mean=float(grid_search.cv_results_["mean_fit_time"][i_param_set]),
-                    fit_time_std=float(grid_search.cv_results_["std_fit_time"][i_param_set]),
-                )
-            )
+            # GridSearchCV does not return individual fit times; so we just duplicate the mean n_splits times
+            fit_times = [float(grid_search.cv_results_["mean_fit_time"][i_param_set])] * n_splits
+
+            cv_result = CVResult(metric, param_set, n_splits)
+
+            cv_result.train_metrics.all = train_metrics
+            cv_result.train_metrics.compute_overall()
+
+            cv_result.val_metrics.all = val_metrics
+            cv_result.val_metrics.compute_overall()
+
+            cv_result.fit_times.all = fit_times
+            cv_result.fit_times.compute_overall()
+
+            self.results.all_results[i_param_set] = cv_result
 
         self.results.update_best_result()
 
