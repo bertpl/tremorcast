@@ -23,7 +23,10 @@ class CVMetaData:
 #  Parameter grid handling
 # =================================================================================================
 def materialize_param_grid(
-    param_grid: Union[Dict, List[Dict]], shuffle: bool = True, add_meta_info: bool = True
+    param_grid: Union[Dict, List[Dict]],
+    shuffle: bool = True,
+    add_meta_info: bool = True,
+    encapsulate_param_values_in_list: bool = True,
 ) -> List[Dict]:
     """Materializes a GridSearchCV param_grid into a list of single-param-set dicts with cv-meta-info attached"""
 
@@ -55,7 +58,7 @@ def materialize_param_grid(
     # --- materialize ---------------------------------
     param_set_list = [
         {
-            param: [value]
+            param: value
             for param_tuple, param_value_tuple in param_set.items()
             for param, value in zip(param_tuple, param_value_tuple)
         }
@@ -77,7 +80,14 @@ def materialize_param_grid(
         now = datetime.datetime.now()
         n_param_sets = len(param_set_list)
         for i_param_set, param_set in enumerate(param_set_list):
-            param_set[CV_METADATA_PARAM] = [CVMetaData(now, i_param_set, n_param_sets)]
+            param_set[CV_METADATA_PARAM] = CVMetaData(now, i_param_set, n_param_sets)
+
+    # --- optionally encapsulate in lists -------------
+    if encapsulate_param_values_in_list:
+        # sklearn's GridSearchCV expects it like this.  Our own internal grid search cv implementations do not.
+        param_set_list = [
+            {param_name: [param_value] for param_name, param_value in param_set.items()} for param_set in param_set_list
+        ]
 
     # --- return --------------------------------------
     return param_set_list
