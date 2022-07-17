@@ -9,7 +9,7 @@ from sklearn.base import BaseEstimator
 from sklearn.compose import TransformedTargetRegressor
 from sklearn.preprocessing import RobustScaler, StandardScaler
 
-from .feature_selectors import FeatureSelector
+from .helpers import FeatureSelector
 from .tabular_regressor import TabularRegressor
 
 

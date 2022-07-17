@@ -1,8 +1,6 @@
-from typing import List
-
 import numpy as np
 
-from src.base.forecasting.models.tabular.feature_selectors import FeatureSelector
+from src.base.forecasting.models.tabular.helpers.feature_selectors import FeatureSelector
 
 
 def test_feature_selector():

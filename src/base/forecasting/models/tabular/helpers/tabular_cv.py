@@ -15,7 +15,6 @@ from src.base.forecasting.evaluation.cross_validation import (
     materialize_param_grid,
 )
 from src.base.forecasting.evaluation.metrics.tabular_metrics import TabularMetric
-from src.base.forecasting.models.tabular.tabular_regressor import TabularRegressor
 from src.tools.datetime import estimate_eta, format_datetime, format_timedelta
 from src.tools.math import remove_nan_rows
 from src.tools.progress import ProgressTimer
@@ -29,8 +28,10 @@ class TabularCrossValidation:
     # -------------------------------------------------------------------------
     #  Constructor
     # -------------------------------------------------------------------------
-    def __init__(self, regressor: TabularRegressor):
-        self.regressor = regressor
+    def __init__(self, regressor: "TabularRegressor"):
+        from src.base.forecasting.models.tabular.tabular_regressor import TabularRegressor
+
+        self.regressor = regressor  # type: TabularRegressor
         self.results = None  # type: Optional[CVResults]
 
     # -------------------------------------------------------------------------

@@ -4,8 +4,7 @@ from typing import Optional, Union
 
 import numpy as np
 
-from .feature_selectors import FeatureSelector
-from .mlp_base import MLP, Activation, LrMaxCriterion
+from .helpers import MLP, Activation, FeatureSelector, LrMaxCriterion
 from .tabular_regressor_wrapper import TabularRegressorWrapper
 
 

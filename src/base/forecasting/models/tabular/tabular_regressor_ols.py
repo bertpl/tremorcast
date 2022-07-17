@@ -2,7 +2,7 @@ from typing import Optional
 
 from sklearn.linear_model import LinearRegression
 
-from .feature_selectors import FeatureSelector
+from .helpers import FeatureSelector
 from .tabular_regressor_wrapper import TabularRegressorWrapper
 
 

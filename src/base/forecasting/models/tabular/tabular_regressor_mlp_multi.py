@@ -4,8 +4,10 @@ from typing import Any, Dict, List, Union
 
 import numpy as np
 
-from .feature_selectors import FeatureSelector
-from .tabular_regressor import CVResults, TabularMetric, TabularRegressor
+from src.base.forecasting.evaluation.cross_validation import CVResults
+
+from .helpers import FeatureSelector
+from .tabular_regressor import TabularRegressor
 from .tabular_regressor_mlp import TabularRegressorMLP
 
 
