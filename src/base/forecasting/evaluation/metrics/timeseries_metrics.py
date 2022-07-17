@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from collections import defaultdict
-from typing import Dict, List, Tuple, Union
+from typing import Dict, Iterable, List, Tuple, Union
 
 import numpy as np
 
@@ -20,7 +20,8 @@ class TimeSeriesMetric(BaseMetric):
     # -------------------------------------------------------------------------
     #  Constructor
     # -------------------------------------------------------------------------
-    def __init__(self, name: str):
+    def __init__(self, name: str, eq_values=Iterable):
+        super().__init__(eq_values=list(eq_values) + [name])
         self.name = name
 
     # -------------------------------------------------------------------------
@@ -53,7 +54,7 @@ class TimeSeriesMetric(BaseMetric):
 # =================================================================================================
 class UnweightedError(TimeSeriesMetric):
     def __init__(self, tabular_metric: TabularMetric):
-        super().__init__("unweighted_metric")
+        super().__init__("unweighted_metric", eq_values=[tabular_metric])
 
         self.tabular_metric = tabular_metric
 
@@ -81,7 +82,7 @@ class UnweightedError(TimeSeriesMetric):
 # =================================================================================================
 class MaxReliableLeadTime(TimeSeriesMetric):
     def __init__(self, tabular_metric: TabularMetric, threshold: float):
-        super().__init__("max_reliable_lead_time")
+        super().__init__(f"max_reliable_lead_time", eq_values=[tabular_metric])
 
         self.tabular_metric = tabular_metric
         self.score_threshold = self.tabular_metric.metric_to_score(threshold)
