@@ -114,13 +114,10 @@ class TabularCrossValidation:
             cv_result = CVResult(metric, param_set, n_splits)
 
             cv_result.train_metrics.all = train_metrics
-            cv_result.train_metrics.compute_overall()
-
             cv_result.val_metrics.all = val_metrics
-            cv_result.val_metrics.compute_overall()
-
             cv_result.fit_times.all = fit_times
-            cv_result.fit_times.compute_overall()
+
+            cv_result.update_stats()
 
             self.results.all_results[i_param_set] = cv_result
 

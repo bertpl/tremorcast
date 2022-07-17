@@ -53,6 +53,11 @@ class CVResult:
         self.val_metrics = CVMetricResult(metric, n_splits)
         self.fit_times = CVMetricResult(ModelFitTime(), n_splits)
 
+    def update_stats(self):
+        self.train_metrics.compute_overall()
+        self.val_metrics.compute_overall()
+        self.fit_times.compute_overall()
+
 
 # =================================================================================================
 #  CrossValidation results for n sets of parameters
@@ -64,8 +69,11 @@ class CVResults:
         self.metric = metric
         self.n_splits = n_splits
 
-        self.all_results = [CVResult(metric, param_set, n_splits) for param_set in param_sets]
+        self.all_results = self._init_results(param_sets)
         self.best_result = None  # type: Optional[CVResult]
+
+    def _init_results(self, param_sets: List[dict]) -> List[CVResult]:
+        return [CVResult(self.metric, param_set, self.n_splits) for param_set in param_sets]
 
     # -------------------------------------------------------------------------
     #  Helpers
