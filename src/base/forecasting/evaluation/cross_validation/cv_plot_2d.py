@@ -10,6 +10,8 @@ import numpy as np
 from src.tools.matplotlib import plot_style_matplotlib_default
 from src.tools.misc import sort_any
 
+from .cv_results import CVMetricResult, CVResult, CVResults
+
 
 # =================================================================================================
 #  2D plotting class
@@ -19,7 +21,7 @@ class CrossValidationPlot2D:
     # -------------------------------------------------------------------------
     #  Constructor
     # -------------------------------------------------------------------------
-    def __init__(self, x_param: str, y_param: str, data: List[Tuple[Tuple, "CVResult"]], higher_is_better: bool):
+    def __init__(self, x_param: str, y_param: str, data: List[Tuple[Tuple, CVResult]], higher_is_better: bool):
 
         # set arguments
         self.x_param = x_param
@@ -59,7 +61,7 @@ class CrossValidationPlot2D:
         # --- values to plot ------------------------------
         x_values, x_ticks, x_tick_labels = process_xy_values(values=[v[0] for v, _ in self.data])
         y_values, y_ticks, y_tick_labels = process_xy_values(values=[v[1] for v, _ in self.data])
-        z_values = [cv_result.val_metric_mean for _, cv_result in self.data]
+        z_values = [cv_result.val_metrics.overall for _, cv_result in self.data]
 
         # --- optimal levels ------------------------------
         line_levels = optimal_levels(x_values, y_values, z_values, self.n_levels)

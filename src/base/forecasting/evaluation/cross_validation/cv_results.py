@@ -7,9 +7,6 @@ import numpy as np
 from src.base.forecasting.evaluation.metrics.base_metric import BaseMetric, ModelFitTime
 from src.tools.misc import sort_any
 
-from .cv_plot_1d import CrossValidationPlot1D
-from .cv_plot_2d import CrossValidationPlot2D
-
 
 # =================================================================================================
 #  CrossValidation result for 1 set of parameters & just train / validation data
@@ -32,8 +29,8 @@ class CVMetricResult:
     def std(self) -> float:
         return float(np.std(self.all))
 
-    def quartile_range(self) -> Tuple[float, float]:
-        return np.quantile(self.all, 0.25), np.quantile(self.all, 0.75)
+    def quantile(self, q: float) -> float:
+        return np.quantile(self.all, q)
 
     def summarize(self) -> str:
         return (
@@ -104,7 +101,7 @@ class CVResults:
         # --- create new CVResults object & return --------
         return self.from_existing_results(self.metric, filtered_results, self.n_folds)
 
-    def sweep_by_filter(self, param_names: List[str], param_filter: dict = None) -> List[Tuple[Any, CVResult]]:
+    def sweep_by_filter(self, param_names: List[str], param_filter: dict = None) -> List[Tuple[Tuple, CVResult]]:
         """
         Returns a 1D sweep across the results, where...
           - param_names determines the x-axis of the sweep  (independent variable) (can be multiple)
@@ -175,20 +172,24 @@ class CVResults:
     # -------------------------------------------------------------------------
     #  Plotting
     # -------------------------------------------------------------------------
-    def plot_1d(self, param_names: Union[str, List[str]], param_filter: dict = None) -> CrossValidationPlot1D:
+    def plot_1d(self, param_names: Union[str, List[str]], param_filter: dict = None) -> "CrossValidationPlot1D":
         """
         Creates a 1D plot for the provided parameter & filtering.
         """
+        from .cv_plot_1d import CrossValidationPlot1D
+
         return CrossValidationPlot1D(
             param_names=param_names,
             data=self.sweep_by_filter(param_names, param_filter),
             higher_is_better=self.metric.greater_metric_is_better(),
         )
 
-    def plot_2d(self, x_param: str, y_param: str, param_filter: dict = None) -> CrossValidationPlot2D:
+    def plot_2d(self, x_param: str, y_param: str, param_filter: dict = None) -> "CrossValidationPlot2D":
         """
         Creates a 2D plot for the provided parameter & filtering.
         """
+        from .cv_plot_2d import CrossValidationPlot2D
+
         return CrossValidationPlot2D(
             x_param,
             y_param,

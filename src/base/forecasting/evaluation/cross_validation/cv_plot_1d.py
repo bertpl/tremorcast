@@ -8,22 +8,24 @@ import numpy as np
 
 from src.tools.matplotlib import plot_style_matplotlib_default
 
+from .cv_results import CVMetricResult, CVResult, CVResults
+
 
 class ErrorBounds(Enum):
     STDEV = auto()
     QUARTILES = auto()
 
-    def get_ub(self, values: List[float]) -> float:
+    def get_ub(self, values: CVMetricResult) -> float:
         if self == ErrorBounds.STDEV:
-            return np.mean(values) + np.std(values)
+            return values.mean() + values.std()
         else:
-            return np.quantile(values, 0.75)
+            return values.quantile(0.75)
 
-    def get_lb(self, values: List[float]) -> float:
+    def get_lb(self, values: CVMetricResult) -> float:
         if self == ErrorBounds.STDEV:
-            return np.mean(values) - np.std(values)
+            return values.mean() - values.std()
         else:
-            return np.quantile(values, 0.25)
+            return values.quantile(0.25)
 
 
 MAX_LINEAR_RANGE = 15
@@ -34,7 +36,7 @@ class CrossValidationPlot1D:
     # -------------------------------------------------------------------------
     #  Constructor
     # -------------------------------------------------------------------------
-    def __init__(self, param_names: List[str], data: List[Tuple[Tuple, "CVResult"]], higher_is_better: bool):
+    def __init__(self, param_names: List[str], data: List[Tuple[Tuple, CVResult]], higher_is_better: bool):
 
         # --- arguments -----------------------------------
         self.param_names = param_names
@@ -105,8 +107,8 @@ class CrossValidationPlot1D:
         fig, ax = plt.subplots(nrows=1, ncols=1)  # type: plt.Figure, plt.Axes
 
         # --- determine values to plot --------------------
-        training_metric_mean = np.array([cv_result.train_metric_mean for _, cv_result in self.data])
-        validation_metric_mean = np.array([cv_result.val_metric_mean for _, cv_result in self.data])
+        training_metric_mean = np.array([cv_result.train_metrics.overall for _, cv_result in self.data])
+        validation_metric_mean = np.array([cv_result.val_metrics.overall for _, cv_result in self.data])
 
         training_metric_lb = np.array([self.error_bounds.get_lb(cv_result.train_metrics) for _, cv_result in self.data])
         training_metric_ub = np.array([self.error_bounds.get_ub(cv_result.train_metrics) for _, cv_result in self.data])
