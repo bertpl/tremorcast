@@ -2,22 +2,13 @@ from __future__ import annotations
 
 import sys
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
-from typing import List, Optional, Tuple, Union
+from typing import List, Optional, Tuple
 
 import numpy as np
 from sklearn.base import BaseEstimator
-from tqdm import tqdm
+from tqdm.auto import tqdm
 
-from src.base.forecasting.evaluation.cross_validation import (
-    CV_METADATA_PARAM,
-    CVMetaData,
-    CVResult,
-    CVResults,
-    TimeSeriesCVSplitter,
-    materialize_param_grid,
-)
-from src.base.forecasting.evaluation.metrics import TimeSeriesMetric
+from src.base.forecasting.evaluation.cross_validation import CV_METADATA_PARAM, CVMetaData
 
 
 # =================================================================================================
@@ -31,14 +22,19 @@ class TimeSeriesModel(ABC, BaseEstimator):
     # -------------------------------------------------------------------------
     #  Constructor
     # -------------------------------------------------------------------------
-    def __init__(self, name: str):
+    def __init__(self, name: str, min_hist: int):
         """
         Constructor of TimeSeriesForecastModel class.
         :param name: (str) type/name of the model
+        :param min_hist: (int) minimum history in samples for the model to work properly, used when
+                               generating validation results using validate()
         """
         self.name = name
+        self.min_hist = min_hist
 
         # internal
+        from .helpers import TimeSeriesCrossValidation
+
         self._cv = TimeSeriesCrossValidation(self)
 
     # -------------------------------------------------------------------------
@@ -46,7 +42,7 @@ class TimeSeriesModel(ABC, BaseEstimator):
     # -------------------------------------------------------------------------
     @property
     def cv(self):
-        """Return TabularCrossValidation object that can perform grid search CV on this model."""
+        """Return TimeSeriesCrossValidation object that can perform grid search CV on this model."""
         return self._cv
 
     def get_cv_metadata(self) -> Optional[CVMetaData]:
@@ -116,30 +112,4 @@ class TimeSeriesModel(ABC, BaseEstimator):
         :param hor: (int) number of samples we need to predict.
         :return: 1D numpy array of length 'hor' with forecasts.
         """
-        pass
-
-
-# =================================================================================================
-#  Cross-Validation
-# =================================================================================================
-class TimeSeriesCrossValidation:
-
-    # -------------------------------------------------------------------------
-    #  Constructor
-    # -------------------------------------------------------------------------
-    def __init__(self, ts_model: TimeSeriesModel):
-        self.ts_model = ts_model
-        self.results = None  # type: Optional[CVResults]
-
-    # -------------------------------------------------------------------------
-    #  Grid Search
-    # -------------------------------------------------------------------------
-    def grid_search(
-        self,
-        x: np.ndarray,
-        param_grid: Union[dict, List[dict]],
-        metric: TimeSeriesMetric,
-        ts_cv_splitter: TimeSeriesCVSplitter,
-        n_jobs: int = -1,
-    ):
         pass
