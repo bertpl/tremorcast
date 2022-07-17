@@ -12,9 +12,9 @@ from src.tools.misc import sort_any
 #  CrossValidation result for 1 set of parameters & just train / validation data
 # =================================================================================================
 class CVMetricResult:
-    def __init__(self, metric: BaseMetric, n_folds: int):
+    def __init__(self, metric: BaseMetric, n_splits: int):
         self._metric = metric
-        self.all = [None] * n_folds  # type: List[Optional[float]]
+        self.all = [None] * n_splits  # type: List[Optional[float]]
         self.overall = None  # type: Optional[float]
 
     # -------------------------------------------------------------------------
@@ -44,27 +44,27 @@ class CVMetricResult:
 #  CrossValidation result for 1 set of parameters
 # =================================================================================================
 class CVResult:
-    def __init__(self, metric: BaseMetric, params: dict, n_folds: int):
+    def __init__(self, metric: BaseMetric, params: dict, n_splits: int):
 
         self.metric = metric
         self.params = params
 
-        self.train_metrics = CVMetricResult(metric, n_folds)
-        self.val_metrics = CVMetricResult(metric, n_folds)
-        self.fit_times = CVMetricResult(ModelFitTime(), n_folds)
+        self.train_metrics = CVMetricResult(metric, n_splits)
+        self.val_metrics = CVMetricResult(metric, n_splits)
+        self.fit_times = CVMetricResult(ModelFitTime(), n_splits)
 
 
 # =================================================================================================
 #  CrossValidation results for n sets of parameters
 # =================================================================================================
 class CVResults:
-    def __init__(self, metric: BaseMetric, param_sets: List[dict], n_folds: int):
+    def __init__(self, metric: BaseMetric, param_sets: List[dict], n_splits: int):
         # instantiates a new 'empty' CVResults object for the provided arguments.
 
         self.metric = metric
-        self.n_folds = n_folds
+        self.n_splits = n_splits
 
-        self.all_results = [CVResult(metric, param_set, n_folds) for param_set in param_sets]
+        self.all_results = [CVResult(metric, param_set, n_splits) for param_set in param_sets]
         self.best_result = None  # type: Optional[CVResult]
 
     # -------------------------------------------------------------------------
@@ -99,7 +99,7 @@ class CVResults:
             ]
 
         # --- create new CVResults object & return --------
-        return self.from_existing_results(self.metric, filtered_results, self.n_folds)
+        return self.from_existing_results(self.metric, filtered_results, self.n_splits)
 
     def sweep_by_filter(self, param_names: List[str], param_filter: dict = None) -> List[Tuple[Tuple, CVResult]]:
         """
@@ -201,15 +201,15 @@ class CVResults:
     #  Factory methods
     # -------------------------------------------------------------------------
     @classmethod
-    def empty(cls, metric: BaseMetric, param_sets: List[dict], n_folds: int) -> CVResults:
+    def empty(cls, metric: BaseMetric, param_sets: List[dict], n_splits: int) -> CVResults:
         # child classes should override this method if they used a child class of CVResult
-        return CVResults(metric, param_sets, n_folds)
+        return CVResults(metric, param_sets, n_splits)
 
     @classmethod
-    def from_existing_results(cls, metric: BaseMetric, all_results: List[CVResult], n_folds: int) -> CVResults:
+    def from_existing_results(cls, metric: BaseMetric, all_results: List[CVResult], n_splits: int) -> CVResults:
 
         # new empty CVResults object
-        cv_results = cls.empty(metric=metric, param_sets=[result.params for result in all_results], n_folds=n_folds)
+        cv_results = cls.empty(metric=metric, param_sets=[result.params for result in all_results], n_splits=n_splits)
 
         # copy CVResult objects into it
         cv_results.all_results = all_results
