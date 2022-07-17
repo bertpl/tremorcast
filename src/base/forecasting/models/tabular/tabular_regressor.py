@@ -55,7 +55,7 @@ class TabularRegressor(BaseEstimator, RegressorMixin):
             setattr(self, param_name, param_value)
 
         # internal
-        from .tabular_cv import TabularCrossValidation
+        from .helpers import TabularCrossValidation
 
         self._cv = TabularCrossValidation(self)
 
