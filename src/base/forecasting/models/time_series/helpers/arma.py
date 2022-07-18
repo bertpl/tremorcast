@@ -2,11 +2,14 @@
 Module with helper functions for prediction & fitting with ARMA time-series models.
 
 Convention:
-  - a: 1D np array with AR-coefficients    (a[i] coefficient for x_{k-i-1})
-  - b: 1D np array with MA-coefficients    (b[i] coefficient for e_{k-i-1})
+  - a: 1D np array with AR-coefficients of size p    (a[i] coefficient for x_{k-i-1})
+  - b: 1D np array with MA-coefficients of size q    (b[i] coefficient for e_{k-i-1})
 """
+from typing import Tuple
+
 import numba
 import numpy as np
+from scipy.optimize import OptimizeResult, minimize
 
 
 # =================================================================================================
@@ -15,11 +18,7 @@ import numpy as np
 @numba.jit()
 def arma_predict(a: np.ndarray, b: np.ndarray, x_hist: np.ndarray, hor: int) -> np.ndarray:
 
-    if b.size > 0:
-        e_hist = arma_compute_e_hist(a, b, x_hist)
-    else:
-        e_hist = np.zeros_like(x_hist)
-
+    e_hist = arma_compute_e_hist(a, b, x_hist)
     return arma_predict_with_e_hist(a, b, x_hist, e_hist, hor)
 
 
@@ -105,4 +104,31 @@ def regularized_division(num: float, den: float, max_result: float) -> float:
 # =================================================================================================
 #  Fitting
 # =================================================================================================
-pass  # TODO
+def arma_fit(x: np.ndarray, p: int, q: int, wd: float = 0.0) -> Tuple[np.ndarray, np.ndarray]:
+
+    # --- argument checking -------------------------------
+    if x.size < 2 * (p + q):
+        raise ValueError(
+            f"Need at least {2*(p+q)} samples for fitting an ARMA model of order (p,q)=({p},{q}), here: {x.size}."
+        )
+
+    # --- fitting function --------------------------------
+    def arma_fitting_cost(coefs: np.ndarray) -> float:
+        """
+        Computes squared norm of e-terms (except for first p+q as warmup) + wd-weighted squared norm of coefficients.
+        """
+        a = coefs[:p]
+        b = coefs[p:]
+        e_hist = arma_compute_e_hist(a, b, x)
+        return np.linalg.norm(e_hist[p + q :]) ** 2 + wd * (np.linalg.norm(coefs) ** 2)
+
+    # --- optimize ----------------------------------------
+    c_init = np.zeros(p + q)
+    res = minimize(arma_fitting_cost, c_init, method="Newton-CG", tol=1e-6)  # type: OptimizeResult
+
+    c_opt = res.x
+    if not res.success:
+        print("--- WARNING: fitting ARMA model parameters did not successfully converge ---")
+
+    # --- return ------------------------------------------
+    return c_opt[:p], c_opt[p:]
