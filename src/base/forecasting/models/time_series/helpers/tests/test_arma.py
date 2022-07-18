@@ -49,7 +49,7 @@ def test_arma_compute_e_hist():
     e_hist = arma_compute_e_hist(a, b, x_hist)
 
     # --- assert ------------------------------------------
-    np.testing.assert_almost_equal(e_hist, expected_e_hist, decimal=2)
+    np.testing.assert_almost_equal(e_hist, expected_e_hist, decimal=3)
 
 
 def test_arma_predict_with_e_hist():
@@ -70,3 +70,41 @@ def test_arma_predict_with_e_hist():
 
     # --- assert ------------------------------------------
     np.testing.assert_almost_equal(x_pred, expected_x_pred, decimal=5)
+
+
+def test_arma_predict_arma():
+
+    # --- arrange -----------------------------------------
+    a = np.array([0.8, 0.1])
+    b = np.array([1.0])
+
+    x_hist = np.array([1.0, 1.0, 1.1, 1.0])
+    hor = 3
+
+    # hand-calculated result:
+    expected_x_pred = np.array([0.78, 0.724, 0.6572])
+
+    # --- act ---------------------------------------------
+    x_pred = arma_predict(a, b, x_hist, hor)
+
+    # --- assert ------------------------------------------
+    np.testing.assert_almost_equal(x_pred, expected_x_pred, decimal=3)
+
+
+def test_arma_predict_ar():
+
+    # --- arrange -----------------------------------------
+    a = np.array([0.8, 0.1])
+    b = np.array([])
+
+    x_hist = np.array([1.0, 1.0])
+    hor = 3
+
+    # hand-calculated result:
+    expected_x_pred = np.array([0.9, 0.82, 0.746])
+
+    # --- act ---------------------------------------------
+    x_pred = arma_predict(a, b, x_hist, hor)
+
+    # --- assert ------------------------------------------
+    np.testing.assert_almost_equal(x_pred, expected_x_pred, decimal=3)
