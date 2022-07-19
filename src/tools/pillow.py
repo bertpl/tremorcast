@@ -1,14 +1,15 @@
+from pathlib import Path
 from typing import Any, Tuple
 
-import numpy as np
 from PIL import ImageDraw, ImageFont
 
-from ..base.data_extraction.graph import BBox
+from src.base.data_extraction.graph import BBox
+from src.tools.paths import get_git_root
 
 
 class ImageDrawPlus(ImageDraw.ImageDraw):
 
-    _DEFAULT_TTF_FILE = r"_fonts/open_sans_bold.ttf"
+    _DEFAULT_TTF_FILE = str(Path(get_git_root()) / "_fonts" / "open_sans_bold.ttf")
     _LINE_STYLES = {"-": None, "--": (10, [(0, 5)]), "..": (2, [(0, 0)]), ".-": (11, [(0, 5), (8, 8)])}
 
     def rectangle_from_bbox(self, bbox: BBox, fill: Any = None, outline: Any = None, width: int = 1, offset: int = 0):
