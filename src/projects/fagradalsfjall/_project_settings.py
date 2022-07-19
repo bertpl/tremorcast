@@ -1,21 +1,23 @@
 import os
 
+from src.tools.paths import get_git_root
+
 # -------------------------------------------------------------------------
 #  Folders
 # -------------------------------------------------------------------------
-PATH_ROOT = "_data/tremor_graphs_vedur_faf"
+PATH_PROJECT_ROOT = os.path.join(get_git_root(), "_data/projects/fagradalsfjall")
 
-PATH_SOURCE = os.path.join(PATH_ROOT, "0_scraped")
-PATH_SOURCE_DEBUG = os.path.join(PATH_SOURCE, "debug")
-PATH_DATASET = os.path.join(PATH_ROOT, "1_data")
-PATH_MODELING = os.path.join(PATH_ROOT, "2_modeling")
-PATH_RESULTS = os.path.join(PATH_ROOT, "3_results")
+PATH_SCRAPED = os.path.join(PATH_PROJECT_ROOT, "0_scraped")
+PATH_SCRAPED_DEBUG = os.path.join(PATH_SCRAPED, "debug")
+PATH_DATASET = os.path.join(PATH_PROJECT_ROOT, "1_dataset")
+PATH_BLOG_POSTS = os.path.join(PATH_PROJECT_ROOT, "2_blog_posts")
+
 
 # -------------------------------------------------------------------------
 #  SOURCE FILES
 # -------------------------------------------------------------------------
-FILES_GRAPH = [
-    os.path.join(PATH_SOURCE, filename)
+SCRAPED_FILES_FOR_PROCESSING = [
+    os.path.join(PATH_SCRAPED, filename)
     for filename in [
         "faf_20210722_2330_long.png",
         "faf_20210818_2330_long.png",
