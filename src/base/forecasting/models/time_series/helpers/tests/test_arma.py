@@ -133,3 +133,19 @@ def test_ar_fit(p: int):
 
     # --- assert ------------------------------------------
     np.testing.assert_almost_equal(a_real, a_estimated, decimal=1)
+
+
+def test_arma_fit():
+
+    # --- arrange -----------------------------------------
+    a_real = np.array([0.8, 0.1])
+    b_real = np.array([1.0])
+    n = 10_000
+    x = generate_arma_data(a=a_real, b=b_real, n=n)
+
+    # --- act ---------------------------------------------
+    a_estimated, b_estimated = arma_fit(x, p=2, q=1)
+
+    # --- assert ------------------------------------------
+    np.testing.assert_almost_equal(a_real, a_estimated, decimal=2)
+    np.testing.assert_almost_equal(b_real, b_estimated, decimal=2)

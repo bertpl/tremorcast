@@ -18,14 +18,14 @@ from src.tools.math import remove_nan_rows
 # =================================================================================================
 #  Predict
 # =================================================================================================
-@numba.jit()
+@numba.jit(fastmath=True)
 def arma_predict(a: np.ndarray, b: np.ndarray, x_hist: np.ndarray, hor: int) -> np.ndarray:
 
     e_hist = arma_compute_e_hist(a, b, x_hist)
     return arma_predict_with_e_hist(a, b, x_hist, e_hist, hor)
 
 
-@numba.jit()
+@numba.jit(fastmath=True)
 def arma_predict_with_e_hist(
     a: np.ndarray, b: np.ndarray, x_hist: np.ndarray, e_hist: np.ndarray, hor: int
 ) -> np.ndarray:
@@ -36,11 +36,13 @@ def arma_predict_with_e_hist(
     e = np.concatenate([e_hist, np.zeros(hor)])
 
     # --- simulate ----------------------------------------
+    a_flip = np.flip(a).copy()
+    b_flip = np.flip(b).copy()
     for i in range(x_hist.size, x.size):
         if a.size > 0:
-            x[i] += np.dot(x[i - a.size : i], np.flip(a))
+            x[i] += np.dot(x[i - a.size : i], a_flip)
         if b.size > 0:
-            x[i] += np.dot(e[i - b.size : i], np.flip(b))
+            x[i] += np.dot(e[i - b.size : i], b_flip)
 
     # --- return ------------------------------------------
     return x[x_hist.size :].copy()
@@ -49,30 +51,32 @@ def arma_predict_with_e_hist(
 # =================================================================================================
 #  Initialization
 # =================================================================================================
-@numba.jit
+@numba.jit(fastmath=True)
 def arma_compute_e_hist(a: np.ndarray, b: np.ndarray, x_hist: np.ndarray) -> np.ndarray:
     """Compute e_hist corresponding to x_hist"""
 
     # --- pad signal --------------------------------------
     n_padding = max(a.size, b.size)
     e_init = arma_compute_initial_e(a, b, x_hist[0])
-    e_hist = np.concatenate([np.full(n_padding, e_init), np.zeros_like(x_hist)])
-    x_hist = np.concatenate([np.full(n_padding, x_hist[0]), x_hist])
+    e_hist = np.concatenate((np.full(n_padding, e_init), np.zeros_like(x_hist)))
+    x_hist = np.concatenate((np.full(n_padding, x_hist[0]), x_hist))
 
     # --- simulate and compute e --------------------------
+    a_flip = np.flip(a).copy()
+    b_flip = np.flip(b).copy()
     for i in range(n_padding, e_hist.size):
         x_pred = 0
         if a.size > 0:
-            x_pred += np.dot(x_hist[i - a.size : i], np.flip(a))
+            x_pred += np.dot(x_hist[i - a.size : i], a_flip)
         if b.size > 0:
-            x_pred += np.dot(e_hist[i - b.size : i], np.flip(b))
+            x_pred += np.dot(e_hist[i - b.size : i], b_flip)
         e_hist[i] = x_hist[i] - x_pred
 
     # --- return e_hist without padding -------------------
     return e_hist[n_padding:]
 
 
-@numba.jit
+@numba.jit(fastmath=True)
 def arma_compute_initial_e(a: np.ndarray, b: np.ndarray, x_init: float) -> float:
     """Returns e_init corresponding to x_init, assuming steady-state"""
 
@@ -90,7 +94,7 @@ def arma_compute_initial_e(a: np.ndarray, b: np.ndarray, x_init: float) -> float
     )
 
 
-@numba.jit
+@numba.jit(fastmath=True)
 def regularized_division(num: float, den: float, max_result: float) -> float:
     """
     We want to compute num/den without it going to 0 for den ± 0, but instead
@@ -108,14 +112,12 @@ def regularized_division(num: float, den: float, max_result: float) -> float:
 #  Fitting
 # =================================================================================================
 class ArmaFitMethods:
-    NEWTON_CG = "Newton-CG"
-    TRUST_NCG = "trust-ncg"
-    TRUST_KRYLOV = "trust-krylov"
+    POWELL = "Powell"
     BFGS = "BFGS"
 
 
 def arma_fit(
-    x: np.ndarray, p: int, q: int, wd: float = 0.0, method: str = None, tol: float = 1e-6
+    x: np.ndarray, p: int, q: int, wd: float = 0.0, method: str = None, tol: float = 1e-6, silent: bool = False
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
     Fits ARMA model of orders (p, q) to provided data x.  We optimize parameters a, b such as to minimize
@@ -125,9 +127,10 @@ def arma_fit(
     :param p: (int) AR order of model to be fitted
     :param q: (int) MA order of model to be fitted
     :param wd: (float, default=0) weight decay parameters for l2 regularization on model coefficients
-    :param method: (str) method to be provided to scipy.optimize.minimize  (default=ArmaFitMethods.NEWTON_CG)
-                              (possible values: see ArmaFitMethods)
+    :param method: (str) method to be provided to scipy.optimize.minimize  (default=ArmaFitMethods.POWELL)
+                              (possible values: only members of ArmaFitMethods)
     :param tol: (float, default=1e-6) tolerance parameter; convergence threshold for optimization algorithm.
+    :param silent: (bool, default=False) when True, no output is generated.
     :return: (a, b)-tuple with AR- and MA-coefficient respectively as 1D np arrays.
     """
 
@@ -138,7 +141,7 @@ def arma_fit(
         )
 
     if method is None:
-        method = ArmaFitMethods.NEWTON_CG
+        method = ArmaFitMethods.POWELL
 
     # --- fitting function --------------------------------
     def arma_fitting_cost(coefs: np.ndarray) -> float:
@@ -148,7 +151,7 @@ def arma_fit(
         a = coefs[:p]
         b = coefs[p:]
         e_hist = arma_compute_e_hist(a, b, x)
-        return np.linalg.norm(e_hist[p + q :]) ** 2 + wd * (np.linalg.norm(coefs) ** 2)
+        return (np.linalg.norm(e_hist[p + q :]) ** 2) + wd * (np.linalg.norm(coefs) ** 2)
 
     # --- initial value -----------------------------------
     if p > 0:
@@ -158,13 +161,17 @@ def arma_fit(
         a_init = np.zeros(p)
         b_init = np.zeros(q)
 
-    c_init = np.concatenate([a_init, b_init])
+    c_init = np.concatenate((a_init, b_init))
 
     # --- optimize ----------------------------------------
-    res = minimize(arma_fitting_cost, c_init, method=method, tol=tol)  # type: OptimizeResult
+    kwargs = dict()
+    if method == ArmaFitMethods.BFGS:
+        kwargs["jac"] = "3-point"
+
+    res = minimize(arma_fitting_cost, c_init, method=method, tol=tol, **kwargs)  # type: OptimizeResult
 
     c_opt = res.x
-    if not res.success:
+    if (not res.success) and (not silent):
         print("--- WARNING: fitting ARMA model parameters did not successfully converge ---")
 
     # --- return ------------------------------------------
@@ -185,11 +192,11 @@ def ar_fit(x: np.ndarray, p: int, wd: float = 0.0) -> np.ndarray:
 
     # add regularization ('weight decay')
     if wd > 0:
-        A = np.concatenate([A, np.sqrt(wd) * np.eye(p)], axis=0)
-        b = np.concatenate([b, np.zeros((p, 1))], axis=0)
+        A = np.concatenate((A, np.sqrt(wd) * np.eye(p)), axis=0)
+        b = np.concatenate((b, np.zeros((p, 1))), axis=0)
 
     # solve
-    c, *_ = np.linalg.lstsq(A, b)
+    c, *_ = np.linalg.lstsq(A, b, rcond=None)
 
     # return
     return c.flatten()
