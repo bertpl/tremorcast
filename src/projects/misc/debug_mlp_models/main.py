@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from src.applications.vedur_is import VedurHarmonicMagnitudes
 from src.base.forecasting.models import (
     LrMaxCriterion,
-    ScoreMetric,
+    TabularMetric,
     TimeSeriesModelAutoRegressiveMLP,
     TimeSeriesModelAutoRegressiveOLS,
     TimeSeriesModelAutoRegressivePLS,
