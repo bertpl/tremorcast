@@ -107,13 +107,38 @@ def regularized_division(num: float, den: float, max_result: float) -> float:
 # =================================================================================================
 #  Fitting
 # =================================================================================================
-def arma_fit(x: np.ndarray, p: int, q: int, wd: float = 0.0) -> Tuple[np.ndarray, np.ndarray]:
+class ArmaFitMethods:
+    NEWTON_CG = "Newton-CG"
+    TRUST_NCG = "trust-ncg"
+    TRUST_KRYLOV = "trust-krylov"
+    BFGS = "BFGS"
+
+
+def arma_fit(
+    x: np.ndarray, p: int, q: int, wd: float = 0.0, method: str = None, tol: float = 1e-6
+) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Fits ARMA model of orders (p, q) to provided data x.  We optimize parameters a, b such as to minimize
+    the l2-norm of the error terms e.  Optionally l2 regularization can be applied to the coefficients by means
+    of a 'weight decay' parameter wd.
+    :param x: (1D np.ndarray) containing data to be fitted
+    :param p: (int) AR order of model to be fitted
+    :param q: (int) MA order of model to be fitted
+    :param wd: (float, default=0) weight decay parameters for l2 regularization on model coefficients
+    :param method: (str) method to be provided to scipy.optimize.minimize  (default=ArmaFitMethods.NEWTON_CG)
+                              (possible values: see ArmaFitMethods)
+    :param tol: (float, default=1e-6) tolerance parameter; convergence threshold for optimization algorithm.
+    :return: (a, b)-tuple with AR- and MA-coefficient respectively as 1D np arrays.
+    """
 
     # --- argument checking -------------------------------
     if x.size < 2 * (p + q):
         raise ValueError(
             f"Need at least {2*(p+q)} samples for fitting an ARMA model of order (p,q)=({p},{q}), here: {x.size}."
         )
+
+    if method is None:
+        method = ArmaFitMethods.NEWTON_CG
 
     # --- fitting function --------------------------------
     def arma_fitting_cost(coefs: np.ndarray) -> float:
@@ -125,9 +150,18 @@ def arma_fit(x: np.ndarray, p: int, q: int, wd: float = 0.0) -> Tuple[np.ndarray
         e_hist = arma_compute_e_hist(a, b, x)
         return np.linalg.norm(e_hist[p + q :]) ** 2 + wd * (np.linalg.norm(coefs) ** 2)
 
+    # --- initial value -----------------------------------
+    if p > 0:
+        a_init = ar_fit(x, p, wd)
+        b_init = np.zeros(q)
+    else:
+        a_init = np.zeros(p)
+        b_init = np.zeros(q)
+
+    c_init = np.concatenate([a_init, b_init])
+
     # --- optimize ----------------------------------------
-    c_init = np.zeros(p + q)
-    res = minimize(arma_fitting_cost, c_init, method="Newton-CG", tol=1e-6)  # type: OptimizeResult
+    res = minimize(arma_fitting_cost, c_init, method=method, tol=tol)  # type: OptimizeResult
 
     c_opt = res.x
     if not res.success:
