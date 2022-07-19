@@ -4,13 +4,19 @@ import numpy as np
 import pytest
 
 from src.base.forecasting.models.time_series.helpers.arma import (
+    ar_fit,
     arma_compute_e_hist,
     arma_compute_initial_e,
+    arma_fit,
     arma_predict,
     arma_predict_with_e_hist,
+    generate_arma_data,
 )
 
 
+# =================================================================================================
+#  AR(MA) - Predict
+# =================================================================================================
 @pytest.mark.parametrize(
     "x_init, a, b, expected_e_init",
     [
@@ -108,3 +114,22 @@ def test_arma_predict_ar():
 
     # --- assert ------------------------------------------
     np.testing.assert_almost_equal(x_pred, expected_x_pred, decimal=3)
+
+
+# =================================================================================================
+#  AR(MA) - Fit
+# =================================================================================================
+@pytest.mark.parametrize("p", [1, 2, 3, 4, 5])
+def test_ar_fit(p: int):
+
+    # --- arrange -----------------------------------------
+    a_real = np.random.standard_normal(p)
+    a_real = a_real * (0.8 / np.linalg.norm(a_real, ord=1))  # make sure model is stable
+    n = 10_000
+    x = generate_arma_data(a=a_real, n=n)
+
+    # --- act ---------------------------------------------
+    a_estimated = ar_fit(x, p=p, wd=0)
+
+    # --- assert ------------------------------------------
+    np.testing.assert_almost_equal(a_real, a_estimated, decimal=1)

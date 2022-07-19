@@ -11,6 +11,9 @@ import numba
 import numpy as np
 from scipy.optimize import OptimizeResult, minimize
 
+from src.base.forecasting.models import build_toeplitz
+from src.tools.math import remove_nan_rows
+
 
 # =================================================================================================
 #  Predict
@@ -132,3 +135,57 @@ def arma_fit(x: np.ndarray, p: int, q: int, wd: float = 0.0) -> Tuple[np.ndarray
 
     # --- return ------------------------------------------
     return c_opt[:p], c_opt[p:]
+
+
+def ar_fit(x: np.ndarray, p: int, wd: float = 0.0) -> np.ndarray:
+
+    # --- argument checking -------------------------------
+    if x.size < 2 * p:
+        raise ValueError(f"Need at least {2*p} samples for fitting an AR model of order {p}, here: {x.size}.")
+
+    # --- linear regression -------------------------------
+    #  find coefficients as solution of A*c=b
+    A = build_toeplitz(x, window_size=p + 1, forward=False)[:, 1:]
+    b = build_toeplitz(x, window_size=1, forward=True)
+    A, b = remove_nan_rows(A, b)
+
+    # add regularization ('weight decay')
+    if wd > 0:
+        A = np.concatenate([A, np.sqrt(wd) * np.eye(p)], axis=0)
+        b = np.concatenate([b, np.zeros((p, 1))], axis=0)
+
+    # solve
+    c, *_ = np.linalg.lstsq(A, b)
+
+    # return
+    return c.flatten()
+
+
+# =================================================================================================
+#  Testing
+# =================================================================================================
+def generate_arma_data(a: np.ndarray = None, b: np.ndarray = None, n: int = 100) -> np.ndarray:
+
+    # --- prep --------------------------------------------
+    if a is None:
+        a = np.array([])
+    if b is None:
+        b = np.array([])
+    p = a.size
+    q = b.size
+    n_ext = n + 2 * max(p, q)
+
+    # --- init --------------------------------------------
+    x = np.zeros(n_ext)
+    e = np.random.standard_normal(n_ext)
+
+    # --- simulate ----------------------------------------
+    for i in range(max(p, q), n_ext):
+        if p > 0:
+            x[i] += np.dot(x[i - p : i], np.flip(a))
+        if q > 0:
+            x[i] += np.dot(e[i - q : i], np.flip(b))
+        x[i] += e[i]
+
+    # --- return ------------------------------------------
+    return x[-n:].copy()  # return copy of last n elements
