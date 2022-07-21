@@ -115,6 +115,7 @@ class TimeSeriesCVResults(CVResults):
 
     metric: TimeSeriesMetric
     all_results: List[TimeSeriesCVResult]
+    best_result: TimeSeriesCVResult
 
     def __init__(self, metric: TimeSeriesMetric, param_sets: List[dict], n_splits: int):
         super().__init__(metric, param_sets, n_splits)
@@ -173,12 +174,11 @@ class TimeSeriesCrossValidation:
         random.shuffle(all_experiments)
 
         # --- initiate joblib -----------------------------
-        pre_dispatch = 2 * n_jobs  # same as GridSearchCV default
-
-        # using the 'multiprocessing' backend instead of the standard 'loky' backend, makes it such that
-        # output still appears in Jupyter notebooks.
-        # https://stackoverflow.com/questions/55955330/printed-output-not-displayed-when-using-joblib-in-jupyter-notebook
-        parallel = Parallel(n_jobs=n_jobs, pre_dispatch=pre_dispatch, backend="multiprocessing")
+        # NOTE 1: using the 'multiprocessing' backend instead of the standard 'loky' backend, makes it such that
+        #         output still appears in Jupyter notebooks.
+        #         https://stackoverflow.com/questions/55955330/printed-output-not-displayed-when-using-joblib-in-jupyter-notebook
+        # NOTE 2: 2*n_jobs is the same as GridSearchCV of sklearn
+        parallel = Parallel(n_jobs=n_jobs, pre_dispatch="2*n_jobs", backend="multiprocessing")
 
         # --- main cross-validation loop ------------------
         base_ts_model = clone(self.ts_model)
@@ -187,8 +187,8 @@ class TimeSeriesCrossValidation:
             tqdm_desc = f"Grid Search over {len(param_sets)} candidates using {len(cv_splits)}-fold Cross-Validation"
 
             out = parallel(
-                delayed(fit_and_evaluate)(
-                    clone(base_ts_model), param_set, x[:n_train], x[n_train : n_train + n_val], metrics, hor
+                delayed(fit_and_evaluate_ts_model)(
+                    clone(base_ts_model), param_set, x[:n_train], x[n_train : n_train + n_val], hor
                 )
                 for i_param_set, i_split, param_set, n_train, n_val in tqdm(
                     all_experiments, desc=tqdm_desc, file=sys.stdout
@@ -255,11 +255,35 @@ class TimeSeriesCrossValidation:
         if retrain:
             self.ts_model.fit(x)
 
+    # -------------------------------------------------------------------------
+    #  Static helpers
+    # -------------------------------------------------------------------------
+    @staticmethod
+    def cross_validate_ts_model(
+        model: "TimeSeriesModel",
+        x: np.ndarray,
+        metric: Union[TimeSeriesMetric, List[TimeSeriesMetric]],
+        ts_cv_splitter: TimeSeriesCVSplitter,
+        hor: int,
+        retrain: bool = True,
+        n_jobs: int = -1,
+    ) -> Dict[TimeSeriesMetric, TimeSeriesCVResult]:
+
+        # --- dummy param grid ----------------------------
+        param_grid = {param_name: [param_value] for param_name, param_value in model.get_params().items()}
+
+        # --- abuse grid search ---------------------------
+        cv = TimeSeriesCrossValidation(ts_model=model)
+        cv.grid_search(x, param_grid, metric, ts_cv_splitter, hor, retrain, n_jobs)
+
+        # --- return dict with cv result per metric -------
+        return {metric: cv_results.best_result for metric, cv_results in cv.results.items()}
+
 
 # =================================================================================================
 #  Helper functions
 # =================================================================================================
-def fit_and_evaluate(
+def fit_and_evaluate_ts_model(
     model: "TimeSeriesModel",
     param_set: dict,
     x_train: np.ndarray,
@@ -277,24 +301,27 @@ def fit_and_evaluate(
     """
 
     # --- parameter handling ------------------------------
-    cloned_param_set = dict()
-    for k, v in param_set.items():
-        cloned_param_set[k] = clone(v, safe=False)
+    if param_set:
+        cloned_param_set = dict()
+        for k, v in param_set.items():
+            cloned_param_set[k] = clone(v, safe=False)
 
-    model.set_params(**cloned_param_set)
+        model.set_params(**cloned_param_set)
 
     # --- fit model ---------------------------------------
     model.fit(x_train)
 
     # --- evaluate ----------------------------------------
-    train_sims = evaluate(model, x_hist=x_train[: model.min_hist], x_val=x_train[model.min_hist :], hor=hor)
-    val_sims = evaluate(model, x_hist=x_train, x_val=x_val, hor=hor)
+    train_sims = evaluate_ts_model(model, x_hist=x_train[: model.min_hist], x_val=x_train[model.min_hist :], hor=hor)
+    val_sims = evaluate_ts_model(model, x_hist=x_train, x_val=x_val, hor=hor)
 
     # --- return ------------------------------------------
     return train_sims, val_sims
 
 
-def evaluate(model: "TimeSeriesModel", x_hist: np.ndarray, x_val: np.ndarray, hor: int) -> ValidationPredictions:
+def evaluate_ts_model(
+    model: "TimeSeriesModel", x_hist: np.ndarray, x_val: np.ndarray, hor: int
+) -> ValidationPredictions:
     """
     Evaluate a fitted model on a provided time series (x_hist, x_val), resulting in a ValidationPredictions object.
     :param model: fitted time series model
