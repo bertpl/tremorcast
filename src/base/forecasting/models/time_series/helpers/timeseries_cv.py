@@ -210,7 +210,7 @@ class TimeSeriesCrossValidation:
         # process all results
         progress = tqdm(
             total=len(metrics) * len(all_experiments),
-            desc=f"Processing cross-validation results".ljust(len(tqdm_desc)),
+            desc=f"Computing train & validation metrics".ljust(len(tqdm_desc)),
             file=sys.stdout,
         )
 
@@ -238,18 +238,18 @@ class TimeSeriesCrossValidation:
                 # finalize results for this parameter set
                 cv_results.all_results[i_param_set].update_stats()
 
-            progress.close()
-
             # update best result for this metric
             cv_results.update_best_result()
 
             # assign to internal dict
             self.results[metric] = cv_results
 
+        progress.close()
+
         # --- set optimal parameters ----------------------
         # select optimal parameters of 1st metric that was provided
         optimal_params = self.results[metrics[0]].best_result.params
-        self.ts_model.set_params(optimal_params)
+        self.ts_model.set_params(**optimal_params)
 
         # --- retrain if needed ---------------------------
         if retrain:
@@ -312,7 +312,7 @@ def fit_and_evaluate_ts_model(
     model.fit(x_train)
 
     # --- evaluate ----------------------------------------
-    train_sims = evaluate_ts_model(model, x_hist=x_train[: model.min_hist], x_val=x_train[model.min_hist :], hor=hor)
+    train_sims = evaluate_ts_model(model, x_hist=x_train[: model.min_hist()], x_val=x_train[model.min_hist() :], hor=hor)
     val_sims = evaluate_ts_model(model, x_hist=x_train, x_val=x_val, hor=hor)
 
     # --- return ------------------------------------------
