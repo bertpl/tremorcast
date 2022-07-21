@@ -11,8 +11,8 @@ class TimeSeriesModelNaiveConstant(TimeSeriesModel):
     # -------------------------------------------------------------------------
     #  Constructor
     # -------------------------------------------------------------------------
-    def __init__(self):
-        super().__init__("naive-constant")
+    def __init__(self, **kwargs):
+        super().__init__("naive-constant", **kwargs)
 
     # -------------------------------------------------------------------------
     #  Fit / Predict

@@ -4,5 +4,5 @@ from .ts_model_ar import TimeSeriesModelAutoRegressive
 
 
 class TimeSeriesModelAutoRegressivePLS(TimeSeriesModelAutoRegressive):
-    def __init__(self, p: int, n: int, n_components: int):
-        super().__init__(p, n, TabularRegressorPLS(n_components))
+    def __init__(self, p: int, n: int, n_components: int, **kwargs):
+        super().__init__(p, n, TabularRegressorPLS(n_components), **kwargs)

@@ -19,7 +19,7 @@ class TimeSeriesModelAutoRegressiveMLPMulti(TimeSeriesModelAutoRegressive):
 
         # regressor
         regressor = TabularRegressorMLPMulti(n_targets=n, **kwargs)
-        super().__init__(p, n, regressor)
+        super().__init__(p, n, regressor, **kwargs)
         self.regressor = regressor  # type: TabularRegressorMLPMulti
 
         # cv

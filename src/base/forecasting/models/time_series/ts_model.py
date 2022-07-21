@@ -17,22 +17,39 @@ from src.base.forecasting.evaluation.cross_validation import CV_METADATA_PARAM, 
 class TimeSeriesModel(ABC, BaseEstimator):
     """
     Abstract class implementing an sklearn-like fit/predict interface for time series forecasting.
+
+    The following requirements need to hold for child classes:
+        - hyper-parameters need to be passable to the constructor
+        - hyper-parameters need to be stored in identically named attributes
+                 (because that's how get_params() gets its parameter values)
+        - constructors of child classes should accept **kwargs to be passed on to superclass constructor
+                 (because that's how we manage to sneak in additional parameters such as CV_METADATA_PARAM)
+        - set_params() needs to behave consistently with how the constructor handles parameters
     """
 
     # -------------------------------------------------------------------------
     #  Constructor
     # -------------------------------------------------------------------------
-    def __init__(self, name: str):
+    def __init__(self, name: str, **kwargs):
         """
         Constructor of TimeSeriesForecastModel class.
         :param name: (str) type/name of the model
         """
         self.name = name
 
+        # other hyper-parameters
+        for param_name, param_value in kwargs.items():
+            setattr(self, param_name, param_value)
+
         # internal
         from .helpers import TimeSeriesCrossValidation
 
         self._cv = TimeSeriesCrossValidation(self)
+
+    def get_params(self, deep=True):
+        params = super().get_params(deep)
+        params[CV_METADATA_PARAM] = None  # make sure CV_METADATA_PARAM is recognized as a valid parameter
+        return params
 
     # -------------------------------------------------------------------------
     #  Cross-Validation

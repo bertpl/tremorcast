@@ -5,4 +5,4 @@ from .ts_model_ar import TimeSeriesModelAutoRegressive
 
 class TimeSeriesModelAutoRegressiveMLP(TimeSeriesModelAutoRegressive):
     def __init__(self, p: int, n: int, **kwargs):
-        super().__init__(p, n, TabularRegressorMLP(**kwargs))
+        super().__init__(p, n, TabularRegressorMLP(**kwargs), **kwargs)

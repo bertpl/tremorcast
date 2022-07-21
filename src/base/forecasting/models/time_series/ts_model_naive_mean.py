@@ -11,8 +11,8 @@ class TimeSeriesModelNaiveMean(TimeSeriesModel):
     # -------------------------------------------------------------------------
     #  Constructor
     # -------------------------------------------------------------------------
-    def __init__(self):
-        super().__init__("naive-mean")
+    def __init__(self, **kwargs):
+        super().__init__("naive-mean", **kwargs)
         self.mean = 0.0
 
     # -------------------------------------------------------------------------

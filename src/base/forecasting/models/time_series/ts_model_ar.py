@@ -34,7 +34,7 @@ class TimeSeriesModelAutoRegressive(TimeSeriesModel):
     # -------------------------------------------------------------------------
     #  Constructor
     # -------------------------------------------------------------------------
-    def __init__(self, p: int, n: int, regressor: TabularRegressor, avoid_training_nans: bool = False):
+    def __init__(self, p: int, n: int, regressor: TabularRegressor, avoid_training_nans: bool = False, **kwargs):
         """
         Constructor of an auto-regressive model using a user-provided tabular regressor.
         :param p: (int) number of past samples to use as features in auto-regression
@@ -43,7 +43,7 @@ class TimeSeriesModelAutoRegressive(TimeSeriesModel):
         :param avoid_training_nans: (bool) set to True if the regressor cannot cope well with NaNs and these need
                                             to be removed (i.e. any row containing at least 1 NaN) from the dataset.
         """
-        super().__init__(name=f"ar_{regressor.name}")
+        super().__init__(name=f"ar_{regressor.name}", **kwargs)
 
         self.regressor = regressor  # type: TabularRegressor
 

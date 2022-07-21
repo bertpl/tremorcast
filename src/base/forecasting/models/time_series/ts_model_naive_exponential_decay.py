@@ -14,8 +14,8 @@ class TimeSeriesModelNaiveExponentialDecay(TimeSeriesModel):
     # -------------------------------------------------------------------------
     #  Constructor
     # -------------------------------------------------------------------------
-    def __init__(self, tau: float):
-        super().__init__("naive-mean")
+    def __init__(self, tau: float, **kwargs):
+        super().__init__("naive-mean", **kwargs)
         self.mean = 0.0
         self.tau = tau
 
