@@ -3,9 +3,9 @@ from __future__ import annotations
 from typing import Dict, List, Set, Union
 
 import numpy as np
-import pandas as pd
 
-from src.base.forecasting.models.tabular import CVResults, TabularMetric
+from src.base.forecasting.evaluation.cross_validation import CVResults
+from src.base.forecasting.evaluation.metrics import TabularMetric
 from src.base.forecasting.models.tabular.tabular_regressor_mlp_multi import TabularRegressorMLPMulti
 
 from .ts_model_ar import TimeSeriesModelAutoRegressive

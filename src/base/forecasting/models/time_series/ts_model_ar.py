@@ -9,7 +9,9 @@ from typing import Dict, List, Optional, Set, Tuple, Union
 import numpy as np
 from tqdm import tqdm
 
-from src.base.forecasting.models.tabular.tabular_regressor import CVResults, TabularMetric, TabularRegressor
+from src.base.forecasting.evaluation.cross_validation import CVResults
+from src.base.forecasting.evaluation.metrics import TabularMetric
+from src.base.forecasting.models.tabular.tabular_regressor import TabularRegressor
 from src.tools.math import remove_nan_rows
 
 from .helpers import build_toeplitz
@@ -54,6 +56,9 @@ class TimeSeriesModelAutoRegressive(TimeSeriesModel):
     # -------------------------------------------------------------------------
     #  Fit & Predict
     # -------------------------------------------------------------------------
+    def min_hist(self) -> int:
+        return self.p
+
     def fit(self, x: np.ndarray):
 
         # --- construct tabulated dataset x,y -------------

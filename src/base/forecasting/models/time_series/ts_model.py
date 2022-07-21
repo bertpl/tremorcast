@@ -22,15 +22,12 @@ class TimeSeriesModel(ABC, BaseEstimator):
     # -------------------------------------------------------------------------
     #  Constructor
     # -------------------------------------------------------------------------
-    def __init__(self, name: str, min_hist: int):
+    def __init__(self, name: str):
         """
         Constructor of TimeSeriesForecastModel class.
         :param name: (str) type/name of the model
-        :param min_hist: (int) minimum history in samples for the model to work properly, used when
-                               generating validation results using validate()
         """
         self.name = name
-        self.min_hist = min_hist
 
         # internal
         from .helpers import TimeSeriesCrossValidation
@@ -94,6 +91,11 @@ class TimeSeriesModel(ABC, BaseEstimator):
     # -------------------------------------------------------------------------
     #  INTERFACE - Fit & Predict
     # -------------------------------------------------------------------------
+    @abstractmethod
+    def min_hist(self) -> int:
+        """Return minimal number of samples of history needed to start making forecasts."""
+        pass
+
     @abstractmethod
     def fit(self, x: np.ndarray):
         """

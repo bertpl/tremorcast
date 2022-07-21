@@ -17,6 +17,9 @@ class TimeSeriesModelNaiveConstant(TimeSeriesModel):
     # -------------------------------------------------------------------------
     #  Fit / Predict
     # -------------------------------------------------------------------------
+    def min_hist(self) -> int:
+        return 1  # just need the last sample
+
     def fit(self, x: np.ndarray):
         pass  # nothing needs to be done here
 
