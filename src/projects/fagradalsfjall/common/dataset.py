@@ -3,8 +3,15 @@ Module with dataset loading and saving
 """
 import pickle
 
+import numpy as np
+
 from src.applications.vedur_is import VedurHarmonicMagnitudes
-from src.projects.fagradalsfjall._project_settings import FILE_DATASET_FULL
+from src.projects.fagradalsfjall._project_settings import (
+    FILE_DATASET_FULL,
+    FILE_DATASET_TEST,
+    FILE_DATASET_TRAIN,
+    FORECAST_SIGNAL_NAME,
+)
 
 
 # -------------------------------------------------------------------------
@@ -29,3 +36,22 @@ def load_dataset_pickle() -> VedurHarmonicMagnitudes:
 # -------------------------------------------------------------------------
 def save_dataset_csv(data: VedurHarmonicMagnitudes):
     data.to_dataframe().to_csv(FILE_DATASET_FULL + ".csv")
+
+
+# -------------------------------------------------------------------------
+#  Save / Load TRAIN & TEST data as numpy arrays
+# -------------------------------------------------------------------------
+def load_train_data() -> np.ndarray:
+
+    with open(FILE_DATASET_TRAIN + ".pkl", "rb") as f:
+        train_data = pickle.load(f)  # type: VedurHarmonicMagnitudes
+
+    return train_data.to_dataframe()[FORECAST_SIGNAL_NAME].to_numpy().flatten()
+
+
+def load_test_data() -> np.ndarray:
+
+    with open(FILE_DATASET_TEST + ".pkl", "rb") as f:
+        test_data = pickle.load(f)  # type: VedurHarmonicMagnitudes
+
+    return test_data.to_dataframe()[FORECAST_SIGNAL_NAME].to_numpy().flatten()
