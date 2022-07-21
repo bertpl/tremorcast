@@ -1,5 +1,5 @@
-import os
 import datetime
+import os
 
 from src.tools.paths import get_git_root
 
@@ -60,17 +60,22 @@ FILE_DATASET_TEST = os.path.join(PATH_DATASET, "dataset_test")
 
 # --- settings --------------------------------------------
 # TOTAL NUMBER OF DAYS = 45
-DATASET_TRAIN_TEST_TS_FROM = datetime.datetime(2021, 7, 20, 0, 0)   # start of long, clean stretch of data
-DATASET_TRAIN_TEST_TS_TO = datetime.datetime(2021, 9, 3, 0, 0)   # end of long, clean stretch of data
+DATASET_TRAIN_TEST_TS_FROM = datetime.datetime(2021, 7, 20, 0, 0)  # start of long, clean stretch of data
+DATASET_TRAIN_TEST_TS_TO = datetime.datetime(2021, 9, 3, 0, 0)  # end of long, clean stretch of data
 
 # train & test sample ranges
 # TRAIN: first 31 days (1 month)
+DATASET_TRAIN_N_DAYS = 31  # ±70%
+DATASET_TEST_N_DAYS = 14  # ±30%
+DATASET_TRAIN_N_SAMPLES = DATASET_TRAIN_N_DAYS * 96
+DATASET_TEST_N_SAMPLES = DATASET_TEST_N_DAYS * 96
+
 DATASET_TRAIN_SAMPLE_FROM = 0
-DATASET_TRAIN_SAMPLE_TO = 31 * 96
+DATASET_TRAIN_SAMPLE_TO = DATASET_TRAIN_N_SAMPLES
 
 # TEST: last 14 days
-DATASET_TEST_SAMPLE_FROM = 31 * 96
-DATASET_TEST_SAMPLE_TO = 45 * 96
+DATASET_TEST_SAMPLE_FROM = DATASET_TRAIN_SAMPLE_TO
+DATASET_TEST_SAMPLE_TO = DATASET_TEST_SAMPLE_FROM + DATASET_TEST_N_SAMPLES
 
 # -------------------------------------------------------------------------
 #  FORECASTING PROBLEM DEFINITION
@@ -79,3 +84,9 @@ DATASET_TEST_SAMPLE_TO = 45 * 96
 # --- paths -----------------------------------------------
 FORECAST_SIGNAL_NAME = "low_mid"
 FORECAST_MAE_THRESHOLD = 200
+
+# -------------------------------------------------------------------------
+#  CROSS VALIDATION
+# -------------------------------------------------------------------------
+CV_MIN_SAMPLES_TRAIN = 20 * 96
+CV_MIN_SAMPLES_VALIDATE = 3 * 96
