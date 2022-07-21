@@ -3,7 +3,7 @@ from typing import List
 import numpy as np
 import pytest
 
-from src.base.forecasting.evaluation.helpers.max_reliable_lead_time import compute_maximum_reliable_lead_time
+from src.base.forecasting.evaluation.metrics.timeseries_metrics import compute_max_accurate_lead_time
 
 
 @pytest.mark.parametrize(
@@ -24,7 +24,7 @@ from src.base.forecasting.evaluation.helpers.max_reliable_lead_time import compu
 def test_compute_maximum_reliable_lead_time(score_curve: List[float], threshold: float, expected_result: float):
 
     # --- act ---------------------------------------------
-    result = compute_maximum_reliable_lead_time(np.array(score_curve), threshold)
+    result = compute_max_accurate_lead_time(np.array(score_curve), threshold)
 
     # --- assert ------------------------------------------
     np.testing.assert_almost_equal(result, expected_result)

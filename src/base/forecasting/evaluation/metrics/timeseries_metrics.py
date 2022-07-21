@@ -6,8 +6,6 @@ from typing import Dict, Iterable, List, Tuple, Union
 
 import numpy as np
 
-from src.base.forecasting.evaluation.helpers import compute_maximum_reliable_lead_time
-
 from .base_metric import BaseMetric
 from .tabular_metrics import TabularMetric
 
@@ -45,8 +43,8 @@ class TimeSeriesMetric(BaseMetric):
         return UnweightedError(tabular_metric)
 
     @classmethod
-    def max_reliable_lead_time(cls, tabular_metric: TabularMetric, threshold: float) -> MaxReliableLeadTime:
-        return MaxReliableLeadTime(tabular_metric, threshold)
+    def max_accurate_lead_time(cls, tabular_metric: TabularMetric, threshold: float) -> MaxAccurateLeadTime:
+        return MaxAccurateLeadTime(tabular_metric, threshold)
 
 
 # =================================================================================================
@@ -78,11 +76,11 @@ class UnweightedError(TimeSeriesMetric):
 
 
 # =================================================================================================
-#  Metric - MAX RELIABLE LEAD TIME
+#  Metric - MAX ACCURATE LEAD TIME
 # =================================================================================================
-class MaxReliableLeadTime(TimeSeriesMetric):
+class MaxAccurateLeadTime(TimeSeriesMetric):
     def __init__(self, tabular_metric: TabularMetric, threshold: float):
-        super().__init__(f"max_reliable_lead_time", eq_values=[tabular_metric])
+        super().__init__(f"max_accurate_lead_time", eq_values=[tabular_metric])
 
         self.tabular_metric = tabular_metric
         self.score_threshold = self.tabular_metric.metric_to_score(threshold)
@@ -99,8 +97,8 @@ class MaxReliableLeadTime(TimeSeriesMetric):
             )
         )
 
-        # compute max reliable lead time
-        return compute_maximum_reliable_lead_time(score_vs_lead_time, threshold=self.score_threshold)
+        # compute max accurate lead time
+        return compute_max_accurate_lead_time(score_vs_lead_time, threshold=self.score_threshold)
 
     def metric_to_score(self, metric: Union[float, np.ndarray]) -> Union[float, np.ndarray]:
         return metric
@@ -125,3 +123,41 @@ class MaxReliableLeadTime(TimeSeriesMetric):
 
         # --- return in right format ----------------------
         return [np.array(errors_dict[lead_time]) for lead_time in sorted(errors_dict.keys())]
+
+
+# =================================================================================================
+#  Helpers
+# =================================================================================================
+def compute_max_accurate_lead_time(score_curve: np.ndarray, threshold: float) -> float:
+    """
+    Computes 'Maximum Accurate Lead Time', expressed in # of samples, by evaluating for how many samples
+    the error curve does not exceed the threshold.
+
+    The result is returned as a float, by interpolation between the first sample exceeding the threshold and the
+    sample before.
+
+    :param score_curve: (1D numpy array) containing the score curve, where the first value represents the score of
+                             forecasting 1 sample ahead.  Scores are within range [0,1] and higher is always better.
+    :param threshold: (float >= 0)
+    :return: Computed metric expressed in number of samples, value between 1 and len(score_curve)+1, except for the
+                following corner cases:
+                  1) if score_curve[0] < threshold: a value between 0 and 1 is returned
+                  2) if all(score_curve > threshold): np.inf is returned
+    """
+
+    # --- corner case 2 -----------------------------------
+    if all(score_curve > threshold):
+        return np.inf
+
+    # --- corner case 1 -----------------------------------
+    if score_curve[0] <= threshold:
+        # return value in [0, 1]
+        return abs(threshold) / (abs(threshold) + abs(score_curve[0] - threshold))
+
+    # --- regular case ------------------------------------
+
+    # we are guaranteed to find one (as we're not in corner case 2) + i_first will not be 0 (which is corner case 1)
+    i_first = next(i for i, score in enumerate(score_curve) if score <= threshold)
+
+    # interpolate between score curve values i_first-1 and i_first to find intersection point with threshold
+    return 1 + np.interp(x=threshold, xp=[score_curve[i_first], score_curve[i_first - 1]], fp=[i_first, i_first - 1])
