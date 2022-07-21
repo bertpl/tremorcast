@@ -17,7 +17,7 @@ from src.base.forecasting.evaluation.cross_validation import (
     materialize_param_grid,
 )
 from src.base.forecasting.evaluation.cross_validation.cv_results import CVMetricResult
-from src.base.forecasting.evaluation.metrics import TabularMetric, TimeSeriesMetric
+from src.base.forecasting.evaluation.metrics import TabularMetric, TimeSeriesMetric, compute_metric_vs_lead_time
 
 
 # =================================================================================================
@@ -50,8 +50,8 @@ class ValidationPredictions:
     def get_metric_value(self, metric: TimeSeriesMetric) -> float:
         return metric.compute(self._predictions)
 
-    def get_metric_curve(self, metric: TabularMetric) -> np.ndarray:
-        pass  # TODO
+    def get_metric_curve(self, tabular_metric: TabularMetric) -> np.ndarray:
+        return compute_metric_vs_lead_time(self._predictions, tabular_metric)
 
 
 # =================================================================================================
@@ -120,7 +120,6 @@ class TimeSeriesCVResults(CVResults):
         super().__init__(metric, param_sets, n_splits)
         self.metric = metric  # type: TimeSeriesMetric  # override parent class type hint
 
-
     def _init_results(self, param_sets: List[dict]) -> List[TimeSeriesCVResult]:
         return [TimeSeriesCVResult(self.metric, param_set, self.n_splits) for param_set in param_sets]
 
@@ -149,6 +148,7 @@ class TimeSeriesCrossValidation:
         metric: Union[TimeSeriesMetric, List[TimeSeriesMetric]],
         ts_cv_splitter: TimeSeriesCVSplitter,
         hor: int,
+        retrain: bool = True,
         n_jobs: int = -1,
     ):
 
@@ -211,7 +211,7 @@ class TimeSeriesCrossValidation:
         progress = tqdm(
             total=len(metrics) * len(all_experiments),
             desc=f"Processing cross-validation results".ljust(len(tqdm_desc)),
-            file=sys.stdout
+            file=sys.stdout,
         )
 
         for metric in metrics:
@@ -230,7 +230,7 @@ class TimeSeriesCrossValidation:
                     # update CVResult
                     cv_results.all_results[i_param_set].train_metrics.set_result(i_split, train_sims)
                     cv_results.all_results[i_param_set].val_metrics.set_result(i_split, val_sims)
-                    cv_results.all_results[i_param_set].fit_times.all[i_split] = 0.0    # not implemented yet
+                    cv_results.all_results[i_param_set].fit_times.all[i_split] = 0.0  # not implemented yet
 
                     # update progress bar
                     progress.update()
@@ -245,6 +245,15 @@ class TimeSeriesCrossValidation:
 
             # assign to internal dict
             self.results[metric] = cv_results
+
+        # --- set optimal parameters ----------------------
+        # select optimal parameters of 1st metric that was provided
+        optimal_params = self.results[metrics[0]].best_result.params
+        self.ts_model.set_params(optimal_params)
+
+        # --- retrain if needed ---------------------------
+        if retrain:
+            self.ts_model.fit(x)
 
 
 # =================================================================================================

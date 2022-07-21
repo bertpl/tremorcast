@@ -89,12 +89,7 @@ class MaxAccurateLeadTime(TimeSeriesMetric):
 
         # compute score vs lead time
         score_vs_lead_time = self.tabular_metric.metric_to_score(
-            np.array(
-                [
-                    self.tabular_metric.compute(errors)
-                    for errors in self._compute_errors_vs_lead_time(prediction_results)
-                ]
-            )
+            compute_metric_vs_lead_time(prediction_results, self.tabular_metric)
         )
 
         # compute max accurate lead time
@@ -105,24 +100,6 @@ class MaxAccurateLeadTime(TimeSeriesMetric):
 
     def score_to_metric(self, score: Union[float, np.ndarray]) -> Union[float, np.ndarray]:
         return score
-
-    # -------------------------------------------------------------------------
-    #  Internal
-    # -------------------------------------------------------------------------
-    @staticmethod
-    def _compute_errors_vs_lead_time(prediction_results: List[Tuple[np.ndarray, np.ndarray]]) -> List[np.ndarray]:
-
-        # --- init ----------------------------------------
-        errors_dict = defaultdict(list)  # type: Dict[int, List[float]]
-
-        # --- compute errors by lead time -----------------
-        for actual, forecast in prediction_results:
-            errors = forecast - actual
-            for i, error in enumerate(errors):
-                errors_dict[i].append(error)
-
-        # --- return in right format ----------------------
-        return [np.array(errors_dict[lead_time]) for lead_time in sorted(errors_dict.keys())]
 
 
 # =================================================================================================
@@ -161,3 +138,24 @@ def compute_max_accurate_lead_time(score_curve: np.ndarray, threshold: float) ->
 
     # interpolate between score curve values i_first-1 and i_first to find intersection point with threshold
     return 1 + np.interp(x=threshold, xp=[score_curve[i_first], score_curve[i_first - 1]], fp=[i_first, i_first - 1])
+
+
+def compute_deltas_vs_lead_time(prediction_results: List[Tuple[np.ndarray, np.ndarray]]) -> List[np.ndarray]:
+
+    # --- init ----------------------------------------
+    deltas_dict = defaultdict(list)  # type: Dict[int, List[float]]
+
+    # --- compute deltas by lead time -----------------
+    for actual, forecast in prediction_results:
+        deltas = forecast - actual
+        for i, delta in enumerate(deltas):
+            deltas_dict[i].append(delta)
+
+    # --- return in right format ----------------------
+    return [np.array(deltas_dict[lead_time]) for lead_time in sorted(deltas_dict.keys())]
+
+
+def compute_metric_vs_lead_time(
+    prediction_results: List[Tuple[np.ndarray, np.ndarray]], tabular_metric: TabularMetric
+) -> np.ndarray:
+    return np.array([tabular_metric.compute(deltas) for deltas in compute_deltas_vs_lead_time(prediction_results)])
