@@ -39,7 +39,7 @@ class TabularRegressor(BaseEstimator, RegressorMixin):
                      (because that's how get_params() gets its parameter values)
             - constructors of child classes should accept **kwargs to be passed on to superclass constructor
                      (because that's how we manage to sneak in additional parameters such as CV_METADATA_PARAM)
-            - set_params() needs to behave consistently
+            - set_params() needs to behave consistently with how the constructor handles parameters
     """
 
     # -------------------------------------------------------------------------
