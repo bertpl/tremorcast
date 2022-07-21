@@ -57,6 +57,7 @@ FILE_DATASET_FULL = os.path.join(PATH_DATASET, "dataset_full")
 FILE_DATASET_SELECTION = os.path.join(PATH_DATASET, "dataset_selection")
 FILE_DATASET_TRAIN = os.path.join(PATH_DATASET, "dataset_train")
 FILE_DATASET_TEST = os.path.join(PATH_DATASET, "dataset_test")
+FILE_DATASET_CROSS_VALIDATION = os.path.join(PATH_DATASET, "dataset_cv")
 
 # --- settings --------------------------------------------
 # TOTAL NUMBER OF DAYS = 45
