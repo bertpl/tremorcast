@@ -59,7 +59,11 @@ class HarmonicMagnitudes(MultiTimeSeries):
     #  Graphs
     # -------------------------------------------------------------------------
     def create_plot(
-        self, signal_types: List[Any] = None, title: str = None, aspect_ratio: float = None
+        self,
+        signal_types: List[Any] = None,
+        title: str = None,
+        aspect_ratio: float = None,
+        fig_ax: Tuple[plt.Figure, plt.Axes] = None,
     ) -> Tuple[plt.Figure, plt.Axes]:
 
         # --- determine signal tags to be plotted ---------
@@ -77,17 +81,22 @@ class HarmonicMagnitudes(MultiTimeSeries):
             tags = self.tags()
 
         # --- actual work ---------------------------------
-        fig, ax = self._prepare_fig_and_axes(tags)
+        fig, ax = self._prepare_fig_and_axes(tags, fig_ax)
         self._draw_signals(fig, ax, tags)
         self._finalize_fig_and_axes(fig, ax, title, aspect_ratio)
 
         # --- return --------------------------------------
         return fig, ax
 
-    def _prepare_fig_and_axes(self, tags: List[str]) -> Tuple[plt.Figure, plt.Axes]:
+    def _prepare_fig_and_axes(
+        self, tags: List[str], fig_ax: Tuple[plt.Figure, plt.Axes] = None
+    ) -> Tuple[plt.Figure, plt.Axes]:
 
         # create plot
-        fig, ax = plt.subplots()  # type: plt.Figure, plt.Axes
+        if fig_ax is None:
+            fig, ax = plt.subplots()  # type: plt.Figure, plt.Axes
+        else:
+            fig, ax = fig_ax
 
         # x scale
         set_x_scale_daily(ax, ts_from=min(self.time), ts_to=max(self.time), margin=0.01)
