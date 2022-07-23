@@ -1,3 +1,37 @@
+# =================================================================================================
+#  OVERVIEW OF CLASSES:
+#
+#  TimeSeriesCrossValidation    -->  like the GridSearchCV of sklearn, but better & for time series ;-)
+#  -------------------------
+#    .results = {
+#       TimeSeriesMetric -> TimeSeriesCVResults
+#    }
+#
+#
+#  TimeSeriesCVResults          --> cross-validation results over all parameters sets, for 1 metric
+#  -------------------
+#    .all_results = List[TimeSeriesCVResult]
+#    .best_result = TimeSeriesCVResults
+#
+#
+#  TimeSeriesCVResult           --> cross-validation results for 1 parameter set
+#  ------------------
+#    .train_metric = TimeSeriesCVMetricResult
+#    .val_metrics = TimeSeriesCVMetricResult
+#
+#
+#  TimeSeriesCVMetricResult     --> validation results over all splits for 1 parameter set (either train or test)
+#  ------------------------
+#    .all = List[float]     (list of metric values for each split)
+#    .overall = float       (overall metric over all splits; not necessarily the mean)
+#    .val_preds = List[ValidationPredictions]      (timeseries-specific addition)
+#
+#
+#  ValidationPredictions        --> contains pairs of (actual, predicted)-timeseries-chunks
+#  ---------------------
+#    ._predictions = List[Tuple[array, array]]
+#
+# =================================================================================================
 from __future__ import annotations
 
 import itertools
@@ -312,7 +346,9 @@ def fit_and_evaluate_ts_model(
     model.fit(x_train)
 
     # --- evaluate ----------------------------------------
-    train_sims = evaluate_ts_model(model, x_hist=x_train[: model.min_hist()], x_val=x_train[model.min_hist() :], hor=hor)
+    train_sims = evaluate_ts_model(
+        model, x_hist=x_train[: model.min_hist()], x_val=x_train[model.min_hist() :], hor=hor
+    )
     val_sims = evaluate_ts_model(model, x_hist=x_train, x_val=x_val, hor=hor)
 
     # --- return ------------------------------------------
