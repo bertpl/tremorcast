@@ -171,7 +171,7 @@ class TimeSeriesCrossValidation:
         from src.base.forecasting.models.time_series.ts_model import TimeSeriesModel
 
         self.ts_model = ts_model  # type: TimeSeriesModel
-        self.results = dict()  # type: Dict[TimeSeriesMetric, TimeSeriesCVResults]
+        self.results = None  # type: Optional[TimeSeriesCVResults]
 
     # -------------------------------------------------------------------------
     #  Grid Search
@@ -180,18 +180,12 @@ class TimeSeriesCrossValidation:
         self,
         x: np.ndarray,
         param_grid: Union[dict, List[dict]],
-        metric: Union[TimeSeriesMetric, List[TimeSeriesMetric]],
+        metric: TimeSeriesMetric,
         ts_cv_splitter: TimeSeriesCVSplitter,
         hor: int,
         retrain: bool = True,
         n_jobs: int = -1,
     ):
-
-        # --- argument handling ---------------------------
-        if isinstance(metric, list):
-            metrics = metric
-        else:
-            metrics = [metric]
 
         # --- init ----------------------------------------
         param_sets = materialize_param_grid(
@@ -230,8 +224,9 @@ class TimeSeriesCrossValidation:
             )  # type: Iterable[Tuple[ValidationPredictions, ValidationPredictions]]
 
         # --- construct CVResults objects -----------------
+
         # initialize results
-        self.results = dict()
+        self.results = TimeSeriesCVResults(metric=metric, param_sets=param_sets, n_splits=len(cv_splits))
 
         # reorder results in dict
         results_dict = {
@@ -243,46 +238,36 @@ class TimeSeriesCrossValidation:
 
         # process all results
         progress = tqdm(
-            total=len(metrics) * len(all_experiments),
+            total=len(all_experiments),
             desc=f"Computing train & validation metrics".ljust(len(tqdm_desc)),
             file=sys.stdout,
         )
 
-        for metric in metrics:
+        for i_param_set in range(len(param_sets)):
 
-            # create new cv_results object
-            cv_results = TimeSeriesCVResults(metric=metric, param_sets=param_sets, n_splits=len(cv_splits))
+            for i_split in range(len(cv_splits)):
 
-            # add all info
-            for i_param_set in range(len(param_sets)):
+                # extract results
+                train_sims, val_sims = results_dict[i_param_set, i_split]
 
-                for i_split in range(len(cv_splits)):
+                # update CVResult
+                self.results.all_results[i_param_set].train_metrics.set_result(i_split, train_sims)
+                self.results.all_results[i_param_set].val_metrics.set_result(i_split, val_sims)
+                self.results.all_results[i_param_set].fit_times.all[i_split] = 0.0  # not implemented yet
 
-                    # extract results
-                    train_sims, val_sims = results_dict[i_param_set, i_split]
+                # update progress bar
+                progress.update()
 
-                    # update CVResult
-                    cv_results.all_results[i_param_set].train_metrics.set_result(i_split, train_sims)
-                    cv_results.all_results[i_param_set].val_metrics.set_result(i_split, val_sims)
-                    cv_results.all_results[i_param_set].fit_times.all[i_split] = 0.0  # not implemented yet
+            # finalize results for this parameter set
+            self.results.all_results[i_param_set].update_stats()
 
-                    # update progress bar
-                    progress.update()
-
-                # finalize results for this parameter set
-                cv_results.all_results[i_param_set].update_stats()
-
-            # update best result for this metric
-            cv_results.update_best_result()
-
-            # assign to internal dict
-            self.results[metric] = cv_results
+        # update best result
+        self.results.update_best_result()
 
         progress.close()
 
         # --- set optimal parameters ----------------------
-        # select optimal parameters of 1st metric that was provided
-        optimal_params = self.results[metrics[0]].best_result.params
+        optimal_params = self.results.best_result.params
         self.ts_model.set_params(**optimal_params)
 
         # --- retrain if needed ---------------------------
