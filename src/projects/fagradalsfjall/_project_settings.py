@@ -84,10 +84,12 @@ DATASET_TEST_SAMPLE_TO = DATASET_TEST_SAMPLE_FROM + DATASET_TEST_N_SAMPLES
 
 # --- paths -----------------------------------------------
 FORECAST_SIGNAL_NAME = "low_mid"
-FORECAST_MAE_THRESHOLD = 200
 
 # -------------------------------------------------------------------------
 #  CROSS VALIDATION
 # -------------------------------------------------------------------------
 CV_MIN_SAMPLES_TRAIN = 20 * 96
 CV_MIN_SAMPLES_VALIDATE = 3 * 96
+CV_N_SPLITS = 10
+CV_HORIZON = 2 * 96
+CV_METRIC_RMSE_THRESHOLD = 200
