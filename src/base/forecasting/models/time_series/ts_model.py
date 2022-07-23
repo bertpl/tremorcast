@@ -80,6 +80,7 @@ class TimeSeriesModel(ABC, BaseEstimator):
         hor: int,
         overlap_end: bool = False,
         stride: int = 1,
+        silent: bool = True,
     ) -> List[Tuple[int, np.ndarray]]:
         """
         Performs a batch of predictions on a single dataset with fixed horizon and regularly spaced initial samples.
@@ -90,6 +91,7 @@ class TimeSeriesModel(ABC, BaseEstimator):
         :param overlap_end: (bool, default=False) if False, the horizon is shortened for the last predictions, to not
                               extend beyond the provided dataset.
         :param stride: (int) number of samples between each prediction.
+        :param silent: (bool) if True no output or progress bars
         :return: list of (initial_sample, forecast)-tuples, of type (int, np.ndarray)
         """
 
@@ -99,6 +101,8 @@ class TimeSeriesModel(ABC, BaseEstimator):
             range(first_sample, x.size, stride),
             desc=f"Evaluating model '{self.name}'".ljust(60),
             file=sys.stdout,
+            disable=silent,
+            leave=False,
         ):
 
             forecasts.append((i, self.predict(x_hist=x[0:i], hor=hor if overlap_end else min(hor, x.size - i))))

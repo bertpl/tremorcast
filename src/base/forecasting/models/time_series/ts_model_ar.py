@@ -82,6 +82,7 @@ class TimeSeriesModelAutoRegressive(TimeSeriesModel):
         hor: int,
         overlap_end: bool = False,
         stride: int = 1,
+        silent: bool = True,
     ) -> List[Tuple[int, np.ndarray]]:
         """
         In this implementation we batch together calls to our tabular regressor, to minimize overhead.  For certain
@@ -106,6 +107,8 @@ class TimeSeriesModelAutoRegressive(TimeSeriesModel):
             range(n_iterations),
             desc=f"Batch prediction for model {self.name} [hor={hor}, batch_size={predictions.shape[0]}]",
             file=sys.stdout,
+            disable=silent,
+            leave=False,
         ):
 
             # Previous p samples for each prediction, needed to predict an additional n steps ahead.
