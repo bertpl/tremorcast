@@ -185,6 +185,7 @@ class TimeSeriesCrossValidation:
         hor: int,
         retrain: bool = True,
         n_jobs: int = -1,
+        leave_progress_bars: bool = True,
     ):
 
         # --- init ----------------------------------------
@@ -219,7 +220,7 @@ class TimeSeriesCrossValidation:
                     clone(base_ts_model), param_set, x[:n_train], x[n_train : n_train + n_val], hor
                 )
                 for i_param_set, i_split, param_set, n_train, n_val in tqdm(
-                    all_experiments, desc=tqdm_desc, file=sys.stdout
+                    all_experiments, desc=tqdm_desc, file=sys.stdout, leave=leave_progress_bars, mininterval=0
                 )
             )  # type: Iterable[Tuple[ValidationPredictions, ValidationPredictions]]
 
@@ -241,6 +242,7 @@ class TimeSeriesCrossValidation:
             total=len(all_experiments),
             desc=f"Computing train & validation metrics".ljust(len(tqdm_desc)),
             file=sys.stdout,
+            leave=leave_progress_bars,
         )
 
         for i_param_set in range(len(param_sets)):
@@ -281,22 +283,22 @@ class TimeSeriesCrossValidation:
     def cross_validate_ts_model(
         model: "TimeSeriesModel",
         x: np.ndarray,
-        metric: Union[TimeSeriesMetric, List[TimeSeriesMetric]],
+        metric: TimeSeriesMetric,
         ts_cv_splitter: TimeSeriesCVSplitter,
         hor: int,
         retrain: bool = True,
         n_jobs: int = -1,
-    ) -> Dict[TimeSeriesMetric, TimeSeriesCVResult]:
+    ) -> TimeSeriesCVResult:
 
         # --- dummy param grid ----------------------------
         param_grid = {param_name: [param_value] for param_name, param_value in model.get_params().items()}
 
         # --- abuse grid search ---------------------------
         cv = TimeSeriesCrossValidation(ts_model=model)
-        cv.grid_search(x, param_grid, metric, ts_cv_splitter, hor, retrain, n_jobs)
+        cv.grid_search(x, param_grid, metric, ts_cv_splitter, hor, retrain, n_jobs, leave_progress_bars=False)
 
         # --- return dict with cv result per metric -------
-        return {metric: cv_results.best_result for metric, cv_results in cv.results.items()}
+        return cv.results.best_result
 
 
 # =================================================================================================
@@ -341,7 +343,7 @@ def fit_and_evaluate_ts_model(
 
 
 def evaluate_ts_model(
-    model: "TimeSeriesModel", x_hist: np.ndarray, x_val: np.ndarray, hor: int
+    model: "TimeSeriesModel", x_hist: np.ndarray, x_val: np.ndarray, hor: int, silent: bool = True
 ) -> ValidationPredictions:
     """
     Evaluate a fitted model on a provided time series (x_hist, x_val), resulting in a ValidationPredictions object.
@@ -349,13 +351,14 @@ def evaluate_ts_model(
     :param x_hist: array of past time series values
     :param x_val: array of future time series values for which we want batch predictions and make comparisons
     :param hor: prediction horizon as an integer
+    :param silent: if True no output or progress bars
     :return: ValidationPredictions object
     """
 
     # --- obtain batch predictions ------------------------
     x_all = np.concatenate([x_hist, x_val])
     first_sample = x_hist.size
-    predictions = model.batch_predict(x_all, first_sample, hor, overlap_end=False, stride=1)
+    predictions = model.batch_predict(x_all, first_sample, hor, overlap_end=False, stride=1, silent=silent)
 
     # --- return as ValidationPredictions object ----------
     return ValidationPredictions([(x_all[i : i + pred.size], pred) for i, pred in predictions])
