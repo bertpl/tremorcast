@@ -26,7 +26,7 @@ The top-level structure can be described as follows:
 * pip install -r requirements.txt
 * `tremorcast.py` (currently empty) is the main future entrypoint
 * local debugging can be done in the `debug` folder, where you can copy `debug_template.py` to `debug.py` (.gitignored) for playing around with the code base locally.
-
+* in specific subfolders under `projects` one can find Jupyter Notebooks that are linked to blog posts on https://brtp.lu/blog/
 
 
 

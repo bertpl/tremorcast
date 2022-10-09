@@ -1,11 +1,12 @@
 This project assumes we have set up a data folder
 
 _data
-    /tremor_graphs_vedur_faf
-        /0_scraped
-        /1_data
-        /2_modeling
-        /3_results
+    /projects
+        /fagradalsfjall
+            /0_scraped
+            /1_dataset
+            /2_blog_posts
+            /3_model_repo
 
 With the 0_scraped folder containing snapshots of the file at the following location:
 
